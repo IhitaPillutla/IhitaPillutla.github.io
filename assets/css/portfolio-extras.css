@@ -61,6 +61,49 @@
   line-height: 1.6;
 }
 
+/* Homepage visual-development tiles now preview actual uploaded work. */
+.art-grid .art-tile {
+  position: relative;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+  isolation: isolate;
+}
+
+.art-grid .art-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(8,3,6,.08), rgba(8,3,6,.78));
+  transition: background .3s ease;
+}
+
+.art-grid .art-tile:hover::before {
+  background: linear-gradient(180deg, rgba(8,3,6,.02), rgba(8,3,6,.62));
+}
+
+.art-grid .art-tile:nth-child(1) {
+  background-image: url('../art-work/karma.png');
+  background-position: center 28%;
+}
+
+.art-grid .art-tile:nth-child(2) {
+  background-image: url('../art-work/process-work/process_full.JPG');
+}
+
+.art-grid .art-tile:nth-child(3) {
+  background-image:
+    linear-gradient(135deg, rgba(70,18,43,.5), rgba(10,5,8,.3)),
+    url('../art-work/concept_art_TQ.PNG');
+}
+
+.art-grid .art-tile span {
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 4px 18px rgba(0,0,0,.78);
+}
+
 /* Personal profile block. */
 .personal-card {
   margin-top: 22px;
