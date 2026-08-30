@@ -3,26 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Omnipi — Game Design & Visual Development</title>
-  <meta name="description" content="Game design, visual development, narrative design, systems design, comics, and digital art portfolio." />
+  <title>Ihita Pillutla — Game Design & Visual Development</title>
+  <meta name="description" content="Ihita Pillutla's portfolio: game design, systems design, playable prototypes, visual development, comics, and narrative work." />
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="index.html">OMNIPI</a>
-    <nav><a href="#work">Work</a><a href="#art">Art</a><a href="#about">About</a></nav>
+    <a class="brand" href="#hero">IHITA PILLUTLA</a>
+    <nav>
+      <a href="#about">About</a>
+      <a href="#work">Work</a>
+      <a href="#art">Art</a>
+      <a class="nav-extra" href="#experience">Experience</a>
+      <a class="nav-extra" href="#skills">Skills</a>
+      <a href="#contact">Contact</a>
+    </nav>
   </header>
 
   <main>
-    <section class="hero">
+    <section id="hero" class="hero hero-home">
       <p class="eyebrow">GAME DESIGN · VISUAL DEVELOPMENT · NARRATIVE</p>
-      <h1>I design worlds that are meant to be played.</h1>
-      <p class="hero-copy">A portfolio spanning game concepts, systems design, playable prototypes, visual development, comics, and character-driven narrative work.</p>
-      <div class="hero-actions"><a class="button primary" href="#work">View selected work</a><a class="button secondary" href="#art">See visual work</a></div>
+      <h1 class="hero-name">Ihita Pillutla</h1>
+      <p class="hero-role">Game Designer · Visual Storyteller · Narrative Designer</p>
+      <p class="hero-copy">I build games, systems, characters and visual worlds — from playable prototypes and design documents to comics, illustration and narrative-driven concepts.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#work">Explore selected work</a>
+        <a class="button secondary" href="#about">About me</a>
+      </div>
+      <a class="scroll-cue" href="#about">Scroll to explore ↓</a>
     </section>
 
-    <section id="work" class="section">
-      <div class="section-heading"><p class="eyebrow">SELECTED WORK</p><h2>Games, systems & narrative design</h2></div>
+    <section id="about" class="section">
+      <div class="section-heading centered-heading">
+        <p class="eyebrow">ABOUT</p>
+        <h2>Designing the system and the story around it.</h2>
+      </div>
+      <div class="profile-grid">
+        <article class="profile-card">
+          <h3>Creative Profile</h3>
+          <p>I work across game design, systems thinking, narrative design, visual development and illustration. My portfolio includes fully documented concepts, branching systems, playable prototypes, comics and character-driven story development.</p>
+          <p>I am especially interested in turning themes into mechanics — making the idea of a project something the player can actually feel through interaction.</p>
+          <div class="domain-tags">
+            <span>Game Design</span><span>Systems Design</span><span>Narrative Design</span><span>Visual Development</span><span>Character Design</span><span>Sequential Art</span>
+          </div>
+        </article>
+        <article class="profile-card">
+          <h3>How I Build</h3>
+          <div class="mini-timeline">
+            <div><strong>01 · Concept</strong><span>Define the theme, player fantasy and emotional goal.</span></div>
+            <div><strong>02 · Systems</strong><span>Translate the concept into loops, rules, consequences and progression.</span></div>
+            <div><strong>03 · Narrative</strong><span>Use characters and story structure to make the mechanics meaningful.</span></div>
+            <div><strong>04 · Visualize</strong><span>Develop UI, illustration, character language and presentation.</span></div>
+            <div><strong>05 · Prototype</strong><span>Test whether the idea still works when somebody can actually play it.</span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="work" class="section alt-section">
+      <div class="section-heading centered-heading"><p class="eyebrow">SELECTED WORK</p><h2>Games, systems & narrative design</h2></div>
       <div class="project-grid">
         <a class="project-card featured" href="projects/battery-human.html"><div class="project-image placeholder">BATTERY HUMAN</div><div class="project-meta"><div><h3>Battery Human</h3><p>Systems Design · Game Design · Multiplayer Horror</p></div><span>Case Study ↗</span></div></a>
         <a class="project-card" href="projects/oni-no-ta.html"><div class="project-image placeholder">ONI NO TA</div><div class="project-meta"><div><h3>Oni no Ta</h3><p>Systems Design · Cozy Simulation · Narrative</p></div><span>Case Study ↗</span></div></a>
@@ -32,18 +71,48 @@
       </div>
     </section>
 
-    <section id="art" class="section alt-section">
-      <div class="section-heading"><p class="eyebrow">VISUAL DEVELOPMENT</p><h2>Illustration, process & sequential art</h2></div>
-      <div class="art-grid"><a class="art-tile wide" href="projects/digital-art.html"><span>Selected Illustrations</span></a><a class="art-tile" href="projects/process.html"><span>Art Process</span></a><a class="art-tile" href="projects/comics.html"><span>Comics & Storyboards</span></a></div>
+    <section id="art" class="section">
+      <div class="section-heading centered-heading"><p class="eyebrow">VISUAL DEVELOPMENT</p><h2>Illustration, process & sequential art</h2></div>
+      <div class="art-grid">
+        <a class="art-tile wide" href="projects/digital-art.html"><span>Selected Illustrations</span></a>
+        <a class="art-tile" href="projects/process.html"><span>Art Process</span></a>
+        <a class="art-tile" href="projects/comics.html"><span>Comics & Storyboards</span></a>
+      </div>
     </section>
 
-    <section id="about" class="section about-section">
-      <div><p class="eyebrow">ABOUT</p><h2>Game designer, visual storyteller, worldbuilder.</h2></div>
-      <div class="about-copy"><p>I work across game design, systems thinking, visual development, narrative design and illustration. My projects range from fully documented concepts to playable prototypes and character-driven story development.</p><p>This site shows both the final work and the thinking behind it.</p></div>
+    <section id="experience" class="section alt-section">
+      <div class="section-heading centered-heading"><p class="eyebrow">EXPERIENCE</p><h2>Project-based design experience</h2></div>
+      <div class="experience-grid">
+        <article class="experience-card"><p class="experience-label">GDAI PIXELSAKHI GAME JAM 2026</p><h3>Smile, Beti</h3><p>A submitted playable visual-novel prototype built around social pressure, expressive dialogue choices and a visible Scandal Meter.</p></article>
+        <article class="experience-card"><p class="experience-label">GAME DESIGN DOCUMENTATION</p><h3>Systems & Concept Design</h3><p>Developed concept, game and systems documentation across Battery Human, Oni no Ta, IDENTITÄT, Ongaku Kyoshitsu and The Last Person in Line.</p></article>
+        <article class="experience-card"><p class="experience-label">VISUAL STORYTELLING</p><h3>Illustration & Sequential Work</h3><p>Developing character work, comics, storyboards and process studies alongside interactive projects.</p></article>
+      </div>
+    </section>
+
+    <section id="skills" class="section">
+      <div class="section-heading centered-heading"><p class="eyebrow">SKILLS</p><h2>Design practice & creative toolkit</h2></div>
+      <div class="skills-grid">
+        <article class="skill-card"><h3>Game Design</h3><p>Core loops, player goals, progression, replayability and consequence-driven design.</p></article>
+        <article class="skill-card"><h3>Systems Design</h3><p>Interconnected mechanics, resource models, relationship systems and difficulty escalation.</p></article>
+        <article class="skill-card"><h3>Narrative Design</h3><p>Branching choices, character-driven stakes, theme-to-mechanic translation and worldbuilding.</p></article>
+        <article class="skill-card"><h3>UI / Player Feedback</h3><p>Designing readable meters, choice interfaces, progression feedback and narrative-facing UI.</p></article>
+        <article class="skill-card"><h3>Visual Development</h3><p>Concept art, rendered illustration, character design and visual-language exploration.</p></article>
+        <article class="skill-card"><h3>Sequential Art</h3><p>Comics, storyboards, panel flow and visual storytelling.</p></article>
+      </div>
+    </section>
+
+    <section id="contact" class="section contact-section alt-section">
+      <div class="contact-panel">
+        <div><p class="eyebrow">CONTACT</p><h2>Let’s make something weird and playable.</h2><p>For collaborations, internships, creative work or to see more of the projects behind this portfolio, you can find me through the links here.</p></div>
+        <div class="contact-links">
+          <a class="button primary" href="https://github.com/IhitaPillutla" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a class="button secondary" href="https://itch.io/jam/gdai-women-game-jam-2026/rate/4513944" target="_blank" rel="noreferrer">itch.io project ↗</a>
+        </div>
+      </div>
     </section>
   </main>
 
-  <footer><p>© 2026 OMNIPI</p><p>Built with GitHub Pages.</p></footer>
+  <footer><p>© 2026 IHITA PILLUTLA</p><p>Built with GitHub Pages.</p></footer>
   <script src="assets/js/main.js"></script>
 </body>
 </html>
