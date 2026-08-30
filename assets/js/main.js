@@ -77,7 +77,7 @@ if (!reducedMotion && window.matchMedia('(pointer:fine)').matches) {
 // Scroll reveal. Cards receive tiny staggered delays so grids feel alive.
 const revealTargets = [
   ...document.querySelectorAll('.section-heading'),
-  ...document.querySelectorAll('.profile-card, .project-card, .art-tile, .experience-card, .skill-card, .contact-panel')
+  ...document.querySelectorAll('.profile-card, .project-card, .art-tile, .motion-card, .experience-card, .skill-card, .contact-panel')
 ];
 
 revealTargets.forEach((element, index) => {
@@ -102,7 +102,7 @@ if ('IntersectionObserver' in window && !reducedMotion) {
 
 // Subtle 3D tilt for cards on precise-pointer devices.
 if (!reducedMotion && window.matchMedia('(pointer:fine)').matches) {
-  const tiltTargets = document.querySelectorAll('.profile-card, .project-card, .art-tile, .experience-card, .skill-card');
+  const tiltTargets = document.querySelectorAll('.profile-card, .project-card, .art-tile, .motion-card, .experience-card, .skill-card');
 
   tiltTargets.forEach(card => {
     card.classList.add('tilt-card');
