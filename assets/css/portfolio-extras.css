@@ -4,9 +4,18 @@
 .hero-home {
   max-width: none;
   width: 100%;
+  min-height: calc(100vh - 70px);
   border-radius: 0 !important;
+  padding-top: 128px;
+  padding-bottom: 68px;
   padding-left: max(24px, calc((100vw - var(--max))/2));
   padding-right: max(24px, calc((100vw - var(--max))/2));
+}
+
+/* Fade the hero lighting before the section ends so there is no hard visual edge. */
+.hero-home::before {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 72%, rgba(0,0,0,.82) 84%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 72%, rgba(0,0,0,.82) 84%, transparent 100%);
 }
 
 /* Full-image project treatment used for visually finished projects. */
@@ -252,6 +261,9 @@
 
 @media (max-width: 760px) {
   .hero-home {
+    min-height: calc(100vh - 64px);
+    padding-top: 108px;
+    padding-bottom: 64px;
     padding-left: 24px;
     padding-right: 24px;
   }
