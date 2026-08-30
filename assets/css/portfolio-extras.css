@@ -88,7 +88,8 @@
   align-items: end;
   gap: 24px;
   padding: 28px;
-  background: linear-gradient(180deg, transparent, rgba(7,3,6,.18));
+  background: #10070c;
+  border-top: 1px solid rgba(255,135,191,.08);
   text-shadow: 0 3px 16px rgba(0,0,0,.7);
 }
 
