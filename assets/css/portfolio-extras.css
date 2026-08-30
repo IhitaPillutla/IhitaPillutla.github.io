@@ -21,10 +21,66 @@
   background-repeat: no-repeat;
 }
 
+/* Uploaded project icons replace the generic maroon title backgrounds. */
+.project-card[href="projects/battery-human.html"] .project-image,
+.project-card[href="projects/oni-no-ta.html"] .project-image,
+.project-card[href="projects/karma.html"] .project-image,
+.project-card[href="projects/more-concepts.html"] .project-image {
+  color: transparent;
+  text-shadow: none;
+  background-color: #180911;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover, 62% auto;
+  transition: background-size .3s ease, filter .3s ease;
+}
+
+.project-card[href="projects/battery-human.html"] .project-image {
+  background-image:
+    radial-gradient(circle at 18% 15%, rgba(255,135,191,.12), transparent 27%),
+    url('../icons/batteryhuman_T.png');
+  background-size: cover, 44% auto;
+}
+
+.project-card[href="projects/oni-no-ta.html"] .project-image {
+  background-image:
+    radial-gradient(circle at 18% 15%, rgba(255,135,191,.12), transparent 27%),
+    url('../icons/oni_T.png');
+}
+
+.project-card[href="projects/karma.html"] .project-image {
+  background-image:
+    radial-gradient(circle at 18% 15%, rgba(255,135,191,.12), transparent 27%),
+    url('../icons/karma_T.png');
+}
+
+.project-card[href="projects/more-concepts.html"] .project-image {
+  background-image:
+    radial-gradient(circle at 18% 15%, rgba(255,135,191,.12), transparent 27%),
+    url('../icons/extra_T.png');
+}
+
+.project-card[href="projects/battery-human.html"]:hover .project-image {
+  background-size: cover, 47% auto;
+}
+
+.project-card[href="projects/oni-no-ta.html"]:hover .project-image,
+.project-card[href="projects/karma.html"]:hover .project-image,
+.project-card[href="projects/more-concepts.html"]:hover .project-image {
+  background-size: cover, 66% auto;
+}
+
 .smile-background {
   background-image:
-    linear-gradient(180deg, rgba(7,2,5,.05) 18%, rgba(10,4,8,.28) 52%, rgba(9,3,7,.96) 100%),
-    url('../images/smile-beti/main-menu.png');
+    linear-gradient(180deg, rgba(8,3,6,.06) 20%, rgba(14,5,10,.28) 58%, rgba(8,3,6,.95) 100%),
+    url('../icons/smilebeti_T.png');
+  background-size: cover, 82% auto;
+  background-position: center, center 43%;
+  background-repeat: no-repeat;
+}
+
+.smile-background:hover {
+  background-size: cover, 86% auto;
 }
 
 .image-project-card::before {
