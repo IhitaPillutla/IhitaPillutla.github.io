@@ -8,86 +8,115 @@ const introLines = [
 
 const tasks = [
   {
-    type: 'EMAIL TRIAGE',
-    title: 'Fix the subject line',
-    brief: 'The boss is sending a deadline update to a client. Pick the clearest professional subject line.',
+    type: 'EMAIL SUBJECT',
+    title: 'Name the email',
+    brief: 'The boss is sending a client an update about their project deadline, now set for 14 September. Write a clear professional subject line.',
     objective: 'Write a clear subject line',
-    kind: 'choice',
-    choices: [
-      'IMPORTANT!!! READ THIS ASAP',
-      'Update Regarding Your Project Deadline — 14 September',
-      'Hey, quick thing',
-      'Project stuff'
-    ],
-    answer: 1,
-    feedback: 'Specific, neutral, and useful before the email is even opened.'
+    placeholder: 'Type the subject line...',
+    evaluate(value) {
+      const v = value.trim();
+      const lower = v.toLowerCase();
+      const words = v ? v.split(/\s+/).filter(Boolean) : [];
+      let points = 0;
+      if (/project|proposal|deadline|delivery|update/.test(lower)) points += 5;
+      if (/14\s*(september|sep)|september\s*14|14th/.test(lower)) points += 5;
+      if (words.length >= 4 && words.length <= 12) points += 5;
+      if (v && !/[!]{2,}|\b(asap|urgent!!!|hey|stuff|thing)\b/i.test(v) && v !== v.toUpperCase()) points += 5;
+      return {
+        points,
+        note: points >= 15
+          ? 'Specific, professional, and useful before the email is even opened.'
+          : 'Make the subject specific: what changed, what it concerns, and the relevant date.'
+      };
+    }
   },
   {
     type: 'TONE CHECK',
     title: 'Save the client relationship',
-    brief: 'A colleague wrote this after the client requested another revision: “You keep changing your mind, so obviously this is taking longer.” Choose the best rewrite.',
+    brief: 'A colleague wrote: “You keep changing your mind, so obviously this is taking longer.” Rewrite it professionally. The new revisions will move delivery to Friday.',
     objective: 'Use an appropriate professional tone',
-    kind: 'choice',
-    choices: [
-      'As previously stated, the delays are the result of your repeated changes.',
-      'We’re happy to incorporate the new direction. The additional revisions will shift the delivery date to Friday.',
-      'No worries lol, we’ll try.',
-      'Please stop changing the brief.'
-    ],
-    answer: 1,
-    feedback: 'It acknowledges the request, explains the consequence, and avoids blaming the reader.'
+    placeholder: 'Rewrite the message...',
+    evaluate(value) {
+      const v = value.trim();
+      const lower = v.toLowerCase();
+      const words = v ? v.split(/\s+/).filter(Boolean) : [];
+      let points = 0;
+      if (/happy|glad|can|will|incorporat|new direction|revision|changes/.test(lower)) points += 5;
+      if (/friday/.test(lower) && /deliver|deadline|complete|ready|send/.test(lower)) points += 5;
+      if (v && !/you keep|your fault|obviously|stop changing|because of you|blame/.test(lower)) points += 5;
+      if (words.length >= 9 && words.length <= 38) points += 5;
+      return {
+        points,
+        note: points >= 15
+          ? 'You acknowledged the request, explained the consequence, and avoided blaming the reader.'
+          : 'Acknowledge the revision neutrally, state the Friday delivery impact, and remove blame.'
+      };
+    }
   },
   {
     type: 'CLARITY EDIT',
     title: 'Cut the corporate fog',
-    brief: 'Choose the clearest version of this sentence: “At this point in time, we are currently in the process of conducting an evaluation of the submitted materials.”',
+    brief: 'Rewrite this as clearly and concisely as possible: “At this point in time, we are currently in the process of conducting an evaluation of the submitted materials.”',
     objective: 'Improve clarity and concision',
-    kind: 'choice',
-    choices: [
-      'At this current point in time, we are evaluating the materials that were submitted.',
-      'We are currently evaluating the submitted materials.',
-      'The submitted materials, at this point, are in a process of evaluation by us.',
-      'Evaluation, currently, is being conducted on materials submitted.'
-    ],
-    answer: 1,
-    feedback: 'Same meaning, fewer words, no deadweight.'
+    placeholder: 'Rewrite the sentence...',
+    evaluate(value) {
+      const v = value.trim();
+      const lower = v.toLowerCase();
+      const words = v ? v.split(/\s+/).filter(Boolean) : [];
+      let points = 0;
+      if (/evaluat|review/.test(lower)) points += 5;
+      if (/submitted materials|materials submitted|submission/.test(lower)) points += 5;
+      if (words.length >= 4 && words.length <= 10) points += 5;
+      if (v && !/at this point in time|in the process of|conducting an evaluation|currently in/.test(lower)) points += 5;
+      return {
+        points,
+        note: points >= 15
+          ? 'Same meaning, fewer words, no deadweight.'
+          : 'Keep the meaning, but remove filler phrases and unnecessary nominalisations.'
+      };
+    }
   },
   {
     type: 'AUDIENCE CHECK',
     title: 'Write for the reader',
-    brief: 'You need to tell a non-technical department that the internal dashboard will be unavailable for maintenance. Pick the strongest version.',
+    brief: 'Tell a non-technical department that the internal dashboard will be unavailable for maintenance from 6–7 PM. They should save their work before 6 PM.',
     objective: 'Adapt writing to the audience',
-    kind: 'choice',
-    choices: [
-      'The dashboard will undergo scheduled backend infrastructure maintenance from 6–7 PM. Please save your work before 6 PM.',
-      'We will be executing a maintenance operation involving backend dependencies and service-layer updates.',
-      'Dashboard dead 6–7. Don’t use it.',
-      'Please be advised that maintenance shall be undertaken pursuant to infrastructure requirements.'
-    ],
-    answer: 0,
-    feedback: 'The reader gets the impact, timing, and action they need without unnecessary jargon.'
+    placeholder: 'Write the notice...',
+    evaluate(value) {
+      const v = value.trim();
+      const lower = v.toLowerCase();
+      let points = 0;
+      if (/dashboard/.test(lower)) points += 5;
+      if (/6\s*(pm)?\s*[–—-]\s*7\s*pm|6\s*pm.*7\s*pm|from\s*6.*7/.test(lower)) points += 5;
+      if (/save/.test(lower) && /before\s*6|by\s*6/.test(lower)) points += 5;
+      if (v && !/backend|dependencies|service-layer|pursuant|infrastructure requirements|executing/.test(lower)) points += 5;
+      return {
+        points,
+        note: points >= 15
+          ? 'The reader gets the impact, timing, and action they need without unnecessary jargon.'
+          : 'State what is unavailable, when, what the reader should do, and avoid technical jargon.'
+      };
+    }
   },
   {
     type: 'FINAL DRAFT',
     title: 'Reply to your manager',
-    brief: 'Your manager asks: “Can you send the revised proposal by 4 PM today?” Write a concise professional reply that confirms the deadline. Sparky is reading as you type.',
+    brief: 'Your manager asks: “Can you send the revised proposal by 4 PM today?” Write a concise professional reply that confirms the deadline.',
     objective: 'Draft a concise professional response',
-    kind: 'text',
-    placeholder: 'Type your reply here...',
+    placeholder: 'Type your reply...',
     evaluate(value) {
       const v = value.trim();
-      if (!v) return { points: 0, note: 'You cannot submit an empty reply to your manager.' };
       const lower = v.toLowerCase();
       let points = 0;
       if (/\b(yes|sure|certainly|absolutely|will|can)\b/.test(lower)) points += 7;
       if (/4\s*pm|4:00|by 4/.test(lower)) points += 7;
       if (v.length >= 20 && v.length <= 220) points += 4;
-      if (!/\b(lol|bro|k|kk|whatever)\b|asap!!!/.test(lower)) points += 2;
+      if (v && !/\b(lol|bro|k|kk|whatever)\b|asap!!!/.test(lower)) points += 2;
       return {
         points,
         note: points >= 15
           ? 'Clear confirmation, clear deadline, no wasted words.'
-          : 'Your reply should explicitly confirm the task and the 4 PM deadline in a concise professional tone.'
+          : 'Explicitly confirm the task and the 4 PM deadline in a concise professional tone.'
       };
     }
   }
@@ -96,7 +125,6 @@ const tasks = [
 let introIndex = 0;
 let taskIndex = 0;
 let score = 0;
-let selectedChoice = null;
 let submitted = false;
 let introTimer = null;
 let introMoving = false;
@@ -120,7 +148,6 @@ const taskTitle = document.getElementById('taskTitle');
 const taskBrief = document.getElementById('taskBrief');
 const taskContent = document.getElementById('taskContent');
 const feedback = document.getElementById('feedback');
-const liveFeedback = document.getElementById('liveFeedback');
 const liveLabel = document.getElementById('liveLabel');
 const liveReadout = document.getElementById('liveReadout');
 const livePotential = document.getElementById('livePotential');
@@ -173,10 +200,8 @@ function advanceIntro(auto = false) {
       renderTask();
     }
   };
-
-  if (auto) {
-    finish();
-  } else {
+  if (auto) finish();
+  else {
     introText.classList.remove('playing');
     introText.classList.add('skip-out');
     setTimeout(finish, 280);
@@ -190,7 +215,6 @@ function buildObjectives() {
 function renderTask() {
   const task = tasks[taskIndex];
   submitted = false;
-  selectedChoice = null;
   lastReadWord = '';
   feedback.className = 'feedback hidden';
   feedback.textContent = '';
@@ -203,52 +227,19 @@ function renderTask() {
   taskBrief.textContent = task.brief;
   readingWord.textContent = '—';
   wordCount.textContent = '0 words';
+  liveLabel.textContent = 'SPARKY IS READING LIVE';
+  liveReadout.textContent = 'start typing...';
   livePotential.textContent = '';
-
-  if (task.kind === 'choice') {
-    liveLabel.textContent = 'SPARKY IS WATCHING';
-    liveReadout.textContent = 'pick an option...';
-    taskContent.innerHTML = `<div class="choice-grid">${task.choices.map((choice, i) => `<button class="choice" data-choice="${i}">${choice}</button>`).join('')}</div>`;
-    taskContent.querySelectorAll('.choice').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (submitted) return;
-        selectedChoice = Number(btn.dataset.choice);
-        taskContent.querySelectorAll('.choice').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        previewChoice(selectedChoice);
-      });
-    });
-  } else {
-    liveLabel.textContent = 'SPARKY IS READING LIVE';
-    liveReadout.textContent = 'start typing...';
-    taskContent.innerHTML = `<label for="draftInput">YOUR RESPONSE</label><textarea id="draftInput" maxlength="500" autocomplete="off" spellcheck="true" placeholder="${task.placeholder}"></textarea>`;
-    const input = document.getElementById('draftInput');
-    input.addEventListener('input', () => updateLiveDraft(input.value));
-    input.addEventListener('keyup', () => updateLiveDraft(input.value));
-  }
+  taskContent.innerHTML = `<label for="draftInput">YOUR RESPONSE</label><textarea id="draftInput" maxlength="500" autocomplete="off" spellcheck="true" placeholder="${task.placeholder}"></textarea>`;
+  const input = document.getElementById('draftInput');
+  input.addEventListener('input', () => updateLiveDraft(input.value));
   setSparky('😐', '“I\'m reading.”', false);
-}
-
-function previewChoice(choiceIndex) {
-  const task = tasks[taskIndex];
-  const choice = task.choices[choiceIndex];
-  const words = choice.trim().split(/\s+/).filter(Boolean);
-  const last = words[words.length - 1] || '—';
-  readingWord.textContent = last;
-  wordCount.textContent = `${words.length} word${words.length === 1 ? '' : 's'}`;
-  liveReadout.textContent = choiceIndex === task.answer ? 'that reads well...' : 'hmm...';
-  livePotential.textContent = choiceIndex === task.answer ? 'LOOKS GOOD' : 'RECONSIDER';
-  if (choiceIndex === task.answer) {
-    setSparky('😐', '“Okay. That actually works.”', true);
-  } else {
-    setSparky('🤨', '“You’re filing THAT?”', true);
-  }
+  setTimeout(() => input.focus(), 100);
 }
 
 function updateLiveDraft(value) {
   const task = tasks[taskIndex];
-  if (task.kind !== 'text' || submitted) return;
-
+  if (submitted) return;
   const trimmed = value.trim();
   const words = trimmed ? trimmed.split(/\s+/).filter(Boolean) : [];
   const currentWord = words.length ? words[words.length - 1] : '—';
@@ -271,16 +262,16 @@ function updateLiveDraft(value) {
 
   if (result.points >= 18) {
     liveReadout.textContent = 'clear + complete';
-    setSparky('😐', '“...Fine. Keep going.”', true);
+    setSparky('😐', '“...Fine. That works.”', true);
   } else if (result.points >= 14) {
     liveReadout.textContent = 'almost there';
     setSparky('🤨', '“Better. Something is still missing.”', true);
-  } else if (result.points >= 8) {
+  } else if (result.points >= 9) {
     liveReadout.textContent = 'needs work';
     setSparky('😥', '“I’m not loving where this is going.”', true);
-  } else if (words.length >= 4) {
+  } else if (words.length >= 5) {
     liveReadout.textContent = 'missing key details';
-    setSparky('😰', '“Intern. The deadline. Please.”', true);
+    setSparky('😰', '“Intern. Read the brief again.”', true);
   } else {
     liveReadout.textContent = 'reading...';
     setSparky('🤨', '“Go on...”', true);
@@ -303,37 +294,23 @@ function setSparky(face, comment, pulse = false) {
 function submitCurrentTask() {
   if (submitted) return;
   const task = tasks[taskIndex];
-  let points = 0;
-  let note = '';
-  let correct = false;
+  const input = document.getElementById('draftInput');
+  const result = task.evaluate(input.value);
+  const points = result.points;
+  const correct = points >= 15;
 
-  if (task.kind === 'choice') {
-    if (selectedChoice === null) {
-      feedback.textContent = 'Pick an answer before filing the task.';
-      feedback.className = 'feedback bad';
-      setSparky('🤨', '“There is literally nothing selected.”', true);
-      return;
-    }
-    correct = selectedChoice === task.answer;
-    points = correct ? 20 : 0;
-    note = correct ? task.feedback : `Not quite. ${task.feedback}`;
-    taskContent.querySelectorAll('.choice').forEach((btn, i) => {
-      btn.disabled = true;
-      if (i === task.answer) btn.style.outline = '2px solid #658344';
-    });
-  } else {
-    const input = document.getElementById('draftInput');
-    const result = task.evaluate(input.value);
-    points = result.points;
-    note = result.note;
-    correct = points >= 15;
-    input.disabled = true;
+  if (!input.value.trim()) {
+    feedback.textContent = 'You cannot file an empty task.';
+    feedback.className = 'feedback bad';
+    setSparky('😡', '“You submitted air.”', true);
+    return;
   }
 
   submitted = true;
+  input.disabled = true;
   score += points;
   scoreEl.textContent = score;
-  feedback.textContent = `+${points} points — ${note}`;
+  feedback.textContent = `+${points} points — ${result.note}`;
   feedback.className = `feedback ${correct ? 'good' : 'bad'}`;
   document.querySelector(`[data-objective="${taskIndex}"]`).classList.add('done');
   progressCount.textContent = `${taskIndex + 1}/${tasks.length}`;
@@ -341,8 +318,9 @@ function submitCurrentTask() {
   nextTask.classList.remove('hidden');
   nextTask.textContent = taskIndex === tasks.length - 1 ? 'END SHIFT ▸' : 'TURN PAGE ▸';
 
-  if (correct) setSparky('😐', '“Hm. Competent. Annoying, but competent.”', true);
-  else if (points >= 10) setSparky('😥', '“Barely. I’m writing this down.”', true);
+  if (points >= 18) setSparky('😐', '“Hm. Competent. Annoying, but competent.”', true);
+  else if (correct) setSparky('🤨', '“Passable. Don’t get smug.”', true);
+  else if (points >= 9) setSparky('😥', '“Barely. I’m writing this down.”', true);
   else setSparky('😡', '“Do you need me to call the boss? I can call the boss.”', true);
 
   if (score >= 75) {
@@ -357,9 +335,7 @@ function nextTaskPage() {
     taskIndex += 1;
     renderTask();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    showEnding();
-  }
+  } else showEnding();
 }
 
 function showEnding() {
@@ -393,10 +369,9 @@ function showEndingLine() {
 }
 
 function advanceEnding(auto = false) {
-  if (endingMoving || restart.classList.contains('hidden') === false) return;
+  if (endingMoving || !restart.classList.contains('hidden')) return;
   endingMoving = true;
   clearTimeout(endingTimer);
-
   const finish = () => {
     endingMoving = false;
     if (endingIndex < endingSequence.length - 1) {
@@ -409,10 +384,8 @@ function advanceEnding(auto = false) {
       restart.classList.remove('hidden');
     }
   };
-
-  if (auto) {
-    finish();
-  } else {
+  if (auto) finish();
+  else {
     endingText.classList.remove('playing');
     endingText.classList.add('skip-out');
     setTimeout(finish, 280);
