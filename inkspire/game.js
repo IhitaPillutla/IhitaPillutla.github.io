@@ -271,26 +271,13 @@ function runLocalNLPEngine(task, text, words) {
 
   // 2. COMMON OFFICE & WORKPLACE TYPO DICTIONARY
   const dictionary = {
-    "evenning": "evening",
-    "evenin": "evening",
-    "comming": "coming",
-    "tommorrow": "tomorrow",
-    "tomorow": "tomorrow",
-    "succesful": "successful",
-    "begining": "beginning",
-    "writting": "writing",
-    "recieve": "receive",
-    "recieved": "received",
-    "definately": "definitely",
-    "seperate": "separate",
-    "apporval": "approval",
-    "aproval": "approval",
-    "recomended": "recommended",
-    "sincorly": "sincerely",
-    "sinserely": "sincerely",
-    "fcuck": "fuck",
-    "hyte": "hate",
-    "luv": "love"
+    "evenning": "evening", "evenin": "evening", "comming": "coming",
+    "tommorrow": "tomorrow", "tomorow": "tomorrow", "succesful": "successful",
+    "begining": "beginning", "writting": "writing", "recieve": "receive",
+    "recieved": "received", "definately": "definitely", "seperate": "separate",
+    "apporval": "approval", "aproval": "approval", "recomended": "recommended",
+    "sincorly": "sincerely", "sinserely": "sincerely", "fcuck": "fuck",
+    "hyte": "hate", "luv": "love"
   };
 
   let searchOffset = 0;
@@ -316,17 +303,108 @@ function runLocalNLPEngine(task, text, words) {
 
   issues.sort((a, b) => a.start - b.start);
 
-  // 3. EVALUATE TASK CRITERIA
+  const hasInformal = issues.some(i => i.type === "informal");
+
+  // 3. SPECIFIC CRITERIA EVALUATIONS FOR ALL 5 TASKS
   const criteriaMet = task.criteria.map((c) => {
+    // Universal length check
     if (c.id === "length") {
       const limits = c.label.match(/\d+/g);
-      if (limits && limits.length === 2) return words.length >= Number(limits[0]) && words.length <= Number(limits[1]);
-      if (limits && limits.length === 1) return words.length <= Number(limits[0]);
+      if (limits && limits.length === 2) {
+        return words.length >= Number(limits[0]) && words.length <= Number(limits[1]);
+      }
+      if (limits && limits.length === 1) {
+        return words.length <= Number(limits[0]);
+      }
     }
-    if (c.id === "tone") return !issues.some(i => i.type === "informal") && words.length >= 7;
-    
-    const keywords = c.prompt.toLowerCase().split(" ").filter(w => w.length > 4);
-    return keywords.some(kw => lower.includes(kw));
+
+    // Universal tone check
+    if (c.id === "tone") {
+      return !hasInformal && words.length >= 10;
+    }
+
+    // SAFETY GUARD: Automatically fail content checks if draft contains informal slang/abbreviations
+    if (hasInformal && words.length < 50) {
+      return false;
+    }
+
+    // Specific Criterion Logic per Task
+    switch (c.id) {
+      // --- Task 1: Careers Panel Email ---
+      case "approval":
+        return (lower.includes("approval") || lower.includes("approve") || lower.includes("confirm")) &&
+               (lower.includes("request") || lower.includes("seeking") || lower.includes("ask") || lower.includes("writing to") || lower.includes("would like"));
+
+      case "deadline":
+        return lower.includes("friday") && (lower.includes("3") || lower.includes("3:00") || lower.includes("3pm") || lower.includes("3 pm"));
+
+      case "value":
+        return lower.includes("benefit") || lower.includes("opportunity") || lower.includes("career") || lower.includes("student") || lower.includes("valuable") || lower.includes("insight");
+
+      case "details":
+        const detailMatches = [
+          lower.includes("18") || lower.includes("october") || lower.includes("oct"),
+          lower.includes("west hall"),
+          lower.includes("80"),
+          lower.includes("alumni"),
+          lower.includes("4:00") || lower.includes("5:30") || lower.includes("4pm")
+        ].filter(Boolean).length;
+        return detailMatches >= 2;
+
+      // --- Task 2: Client Revision ---
+      case "ack":
+        return lower.includes("revision") || lower.includes("direction") || lower.includes("change") || lower.includes("accommodate") || lower.includes("updated");
+
+      case "friday":
+        return lower.includes("friday");
+
+      case "blame":
+        return !hasInformal && !/\b(your fault|you delayed|you changed|you caused)\b/i.test(lower);
+
+      case "next_step":
+        return lower.includes("know") || lower.includes("question") || lower.includes("look forward") || lower.includes("help") || lower.includes("assist") || lower.includes("feel free");
+
+      // --- Task 3: Clarity Edit ---
+      case "meaning":
+        return (lower.includes("evaluat") || lower.includes("review") || lower.includes("assess")) &&
+               (lower.includes("material") || lower.includes("submission") || lower.includes("work"));
+
+      case "filler":
+        return !lower.includes("at this point in time") && !lower.includes("currently in the process of") && !lower.includes("conducting an evaluation");
+
+      case "verb":
+        return /\b(reviewing|evaluating|assessing|reviews|evaluates|assesses)\b/i.test(lower);
+
+      // --- Task 4: Dashboard Notice ---
+      case "name":
+        return lower.includes("dashboard");
+
+      case "window":
+        return (lower.includes("6") || lower.includes("6:00") || lower.includes("6pm")) &&
+               (lower.includes("7") || lower.includes("7:00") || lower.includes("7pm"));
+
+      case "save":
+        return lower.includes("save") && (lower.includes("before") || lower.includes("prior") || lower.includes("by 6"));
+
+      case "jargon":
+        return !/\b(server|backend|api|database|sql|downtime|cluster|deployment|endpoint)\b/i.test(lower);
+
+      // --- Task 5: Manager Reply ---
+      case "confirm":
+        return lower.includes("will") || lower.includes("can") || lower.includes("confirm") || lower.includes("send") || lower.includes("submit") || lower.includes("happy to") || lower.includes("sure");
+
+      case "proposal":
+        return lower.includes("proposal");
+
+      case "time":
+        return (lower.includes("4") || lower.includes("4:00") || lower.includes("4pm") || lower.includes("4 pm")) && lower.includes("today");
+
+      // Default Multi-Keyword Fallback
+      default:
+        const keywords = c.prompt.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(" ").filter(w => w.length > 3 && !["does", "text", "explicitly", "about", "gives", "states"].includes(w));
+        const matches = keywords.filter(kw => lower.includes(kw)).length;
+        return matches >= 2;
+    }
   });
 
   // 4. SPARKY HR REACTION LOGIC
@@ -337,7 +415,7 @@ function runLocalNLPEngine(task, text, words) {
   if (severeIssue) {
     sparkyFace = "😡";
     sparkyComment = "“That wording is going straight to HR. Which is me.”";
-  } else if (issues.some(i => i.type === "informal")) {
+  } else if (hasInformal) {
     sparkyFace = "🤨";
     sparkyComment = "“Keep it professional. Slang won't cut it.”";
   } else if (words.length >= task.minReactionWords) {
@@ -349,7 +427,6 @@ function runLocalNLPEngine(task, text, words) {
 
   return { issues, criteriaMet, sparkyReaction: { face: sparkyFace, comment: sparkyComment } };
 }
-
 function playLine(element, text, type = "hr") {
   if (!element) return;
   element.classList.remove("playing", "skip-out", "player");
