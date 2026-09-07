@@ -49,7 +49,7 @@ const tasks = [
     criteria: [
       { label: "Acknowledges the revision", points: 4, test: t => /revision|change|new direction|update/.test(t.lower) },
       { label: "States Friday delivery", points: 4, test: t => /friday/.test(t.lower) && /deliver|ready|send|complete/.test(t.lower) },
-      { label: "Avoids blame", points: 5, test: t => !/you keep|your fault|because of you|obviously|stop changing|blame/.test(t.lower) && t.words.length >= 10 },
+      { label: "Avoids blame", points: 5, test: t => !hasRiskyTone(t.lower) && !/stop changing|blame/.test(t.lower) && t.words.length >= 10 },
       { label: "Clear + concise", points: 3, test: t => t.words.length >= 25 && t.words.length <= 70 },
       { label: "Positive next step", points: 2, test: t => /happy|glad|we can|we will|please let|thank/.test(t.lower) }
     ]
@@ -125,7 +125,7 @@ const tasks = [
 ];
 
 function hasRiskyTone(lower) {
-  return /\b(lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously)\b|you keep|your fault|because of you|!!!/.test(lower);
+  return /\b(fuck|shit|bitch|ass|damn|crap|lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously)\b|you keep|your fault|because of you|!!!/.test(lower);
 }
 
 const spellingPatterns = [
@@ -133,7 +133,8 @@ const spellingPatterns = [
   [/\badress\b/gi, "address"], [/\boccured\b/gi, "occurred"], [/\buntill\b/gi, "until"],
   [/\bwierd\b/gi, "weird"], [/\balot\b/gi, "a lot"], [/\bbecuase\b/gi, "because"], [/\bteh\b/gi, "the"]
 ];
-const informalPattern = /\b(lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously|hey guys)\b|you keep|your fault|because of you|!!!/gi;
+
+const informalPattern = /\b(fuck|shit|bitch|ass|damn|crap|lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously|hey guys)\b|you keep|your fault|because of you|!!!/gi;
 const clarityPattern = /at this point in time|in the process of|conducting an evaluation|currently in|please be advised that|pursuant to|due to the fact that|in order to/gi;
 
 let introIndex = 0;
@@ -170,6 +171,7 @@ function playLine(element, text, type = "hr") {
   if (type === "player") element.classList.add("player");
   element.classList.add("playing");
 }
+
 function showIntroLine() {
   const line = introLines[introIndex];
   playLine(introText, line.text, line.type);
@@ -181,6 +183,7 @@ function showIntroLine() {
   clearTimeout(introTimer);
   introTimer = setTimeout(() => advanceIntro(true), 10000);
 }
+
 function advanceIntro(auto = false) {
   if (introMoving) return;
   introMoving = true;
@@ -199,6 +202,7 @@ function makeTextState(value) {
   const words = clean.trim() ? clean.trim().split(/\s+/).filter(Boolean) : [];
   return { value: clean, lower: clean.toLowerCase(), words };
 }
+
 function evaluateTask(task, value) {
   const state = makeTextState(value);
   const results = task.criteria.map(c => ({ ...c, met: !!c.test(state) }));
@@ -247,24 +251,35 @@ function renderTask(index) {
 }
 
 function getEditorText() { return draftInput.innerText.replace(/\n+$/g, ""); }
+
 function updateLive() {
   const task = tasks[taskIndex];
   const value = getEditorText();
   drafts[taskIndex] = value;
   const evaluation = evaluateTask(task, value);
   const words = evaluation.state.words;
-  const currentWord = words.length ? words[words.length - 1] : "—";
-  readingWord.textContent = currentWord;
+
+  // READ ENTIRE TEXT IN REAL TIME
+  const fullText = value.trim() || "—";
+  readingWord.textContent = fullText;
+
   wordCount.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
   charStatus.textContent = `${value.length} character${value.length === 1 ? "" : "s"}`;
   wordStatus.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
   livePotential.textContent = `${evaluation.points} / ${task.max}`;
+
   updateCaretStatus();
   renderCriteria(evaluation.results);
+
   const issues = detectIssues(draftInput.textContent || "");
   renderDiagnostics(issues);
   applyHighlights(issues);
-  if (currentWord !== lastReadWord && currentWord !== "—") { lastReadWord = currentWord; pulseSparky(); }
+
+  if (fullText !== lastReadWord && fullText !== "—") {
+    lastReadWord = fullText;
+    pulseSparky();
+  }
+
   calibrateSparky(evaluation, issues);
 }
 
@@ -291,6 +306,7 @@ function textNodeMap(root) {
   while ((n = walker.nextNode())) { nodes.push({ node:n, start:offset, end:offset + n.nodeValue.length }); offset += n.nodeValue.length; }
   return nodes;
 }
+
 function rangeForIssue(issue, map) {
   const s = map.find(x => issue.start >= x.start && issue.start <= x.end);
   const e = map.find(x => issue.end >= x.start && issue.end <= x.end) || map[map.length - 1];
@@ -300,6 +316,7 @@ function rangeForIssue(issue, map) {
   range.setEnd(e.node, Math.min(e.node.nodeValue.length, issue.end - e.start));
   return range;
 }
+
 function applyHighlights(issues) {
   if (!(window.CSS && CSS.highlights && window.Highlight)) return;
   CSS.highlights.delete("spelling-error"); CSS.highlights.delete("informal-warning"); CSS.highlights.delete("clarity-warning");
@@ -310,6 +327,7 @@ function applyHighlights(issues) {
   if (groups.informal.length) CSS.highlights.set("informal-warning", new Highlight(...groups.informal));
   if (groups.clarity.length) CSS.highlights.set("clarity-warning", new Highlight(...groups.clarity));
 }
+
 function renderDiagnostics(issues) {
   issueChips.innerHTML = issues.slice(0,4).map(i => `<span class="issue-chip ${i.type === "spelling" ? "bad" : "warn"}">${i.label}</span>`).join("");
   if (!issues.length) diagnosticMessage.textContent = "No obvious issues detected. Keep checking the criteria.";
@@ -327,17 +345,32 @@ function calibrateSparky(evaluation, issues) {
     else setSparky("🤨", "“Filed. I have notes.”");
     return;
   }
+
   const words = evaluation.state.words.length;
   if (!words) { setSparky("😐", "“I'm reading. Keep going.”"); return; }
-  const severe = issues.filter(i => i.type === "informal").length >= 2 || /your fault|because of you|stop changing/.test(evaluation.state.lower);
-  if (severe && words >= 6) { setSparky("😡", "“Okay. THAT wording is going to HR. Which is me.”"); return; }
-  if (words < tasks[taskIndex].minReactionWords) { setSparky("🙂", "“Yep. I'm following. Keep writing.”"); return; }
+
+  // Check for profanity / informal tone FIRST before word-count checks
+  const hasInformalOrSwear = issues.some(i => i.type === "informal") || 
+                             hasRiskyTone(evaluation.state.lower) ||
+                             /your fault|because of you|stop changing/.test(evaluation.state.lower);
+
+  if (hasInformalOrSwear) {
+    setSparky("😡", "“Okay. THAT wording is going to HR. Which is me.”");
+    return;
+  }
+
+  if (words < tasks[taskIndex].minReactionWords) {
+    setSparky("🙂", "“Yep. I'm following. Keep writing.”");
+    return;
+  }
+
   const ratio = evaluation.points / tasks[taskIndex].max;
   if (ratio >= .8) setSparky("🙂", "“Nice. Most of the brief is covered.”");
   else if (ratio >= .6) setSparky("😐", "“Solid. Check the remaining criteria.”");
   else if (ratio >= .4) setSparky("🤨", "“The core is there. You're missing a few things.”");
   else setSparky("😥", "“You have enough written now — re-check the brief.”");
 }
+
 function setSparky(face, comment) { sparkyFace.textContent = face; sparkyComment.textContent = comment; }
 function pulseSparky() { sparkyFace.classList.remove("word-read"); void sparkyFace.offsetWidth; sparkyFace.classList.add("word-read"); setTimeout(() => sparkyFace.classList.remove("word-read"), 120); }
 
@@ -349,6 +382,7 @@ function updateCaretStatus() {
   const before = range.toString(); const lines = before.split("\n");
   lineStatus.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
 }
+
 function startTaskTimer() {
   clearInterval(timerInterval);
   const tick = () => {
@@ -358,7 +392,9 @@ function startTaskTimer() {
   };
   tick(); timerInterval = setInterval(tick, 1000);
 }
+
 function totalScore() { return taskScores.reduce((a,b) => a+b, 0); }
+
 function updateShiftScore() {
   const score = totalScore(); scoreEl.textContent = score;
   progressCount.textContent = `${completed.filter(Boolean).length}/5 filed`;
@@ -404,10 +440,12 @@ function showEnding() {
   ];
   endingIndex = 0; showEndingLine();
 }
+
 function showEndingLine() {
   const line = endingSequence[endingIndex]; playLine(endingText, line.text, line.type);
   clearTimeout(endingTimer); endingTimer = setTimeout(() => advanceEnding(true), 10000);
 }
+
 function advanceEnding(auto = false) {
   if (endingMoving) return; endingMoving = true; clearTimeout(endingTimer);
   const finish = () => {
