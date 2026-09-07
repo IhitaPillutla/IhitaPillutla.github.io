@@ -2,8 +2,6 @@
 // CONFIGURATION & AI ENGINE INTEGRATION
 // ============================================================================
 
-// Optional: Insert your Gemini API Key here for full generative AI evaluation.
-// If left blank or offline, it falls back to a smart dynamic client-side NLP parser.
 const GEMINI_API_KEY = "";
 
 const introLines = [
@@ -151,24 +149,36 @@ let endingTimer = null;
 let endingMoving = false;
 let autoAdvanceTimer = null;
 
-// DOM Selectors
-const $ = id => document.getElementById(id);
-const intro = $("intro"), workspace = $("workspace"), ending = $("ending");
-const introText = $("introText"), objectiveToast = $("objectiveToast"), taskTabs = $("taskTabs");
-const ctxPurpose = $("ctxPurpose"), ctxReader = $("ctxReader"), ctxRole = $("ctxRole"), ctxConstraints = $("ctxConstraints"), ctxNotes = $("ctxNotes");
-const criteriaList = $("criteriaList"), taskType = $("taskType"), taskTitle = $("taskTitle"), taskBrief = $("taskBrief"), taskMax = $("taskMax"), fileName = $("fileName");
-const draftInput = $("draftInput"), lineStatus = $("lineStatus"), charStatus = $("charStatus"), wordStatus = $("wordStatus"), taskTimer = $("taskTimer");
-const diagnosticMessage = $("diagnosticMessage"), livePotential = $("livePotential"), feedback = $("feedback"), submitTask = $("submitTask"), endShift = $("endShift");
-const sparkyFace = $("sparkyFace"), sparkyComment = $("sparkyComment"), readingWord = $("readingWord"), wordCount = $("wordCount"), issueChips = $("issueChips");
-const scoreEl = $("score"), progressCount = $("progressCount"), lunchState = $("lunchState"), finalScore = $("finalScore"), endingText = $("endingText"), endingHint = $("endingHint"), restart = $("restart");
+// DOM Elements Container
+let els = {};
 
-// ============================================================================
-// DYNAMIC AI & NLP ANALYSIS ENGINE
-// ============================================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const $ = id => document.getElementById(id);
+  els = {
+    intro: $("intro"), workspace: $("workspace"), ending: $("ending"),
+    introText: $("introText"), objectiveToast: $("objectiveToast"), taskTabs: $("taskTabs"),
+    ctxPurpose: $("ctxPurpose"), ctxReader: $("ctxReader"), ctxRole: $("ctxRole"), ctxConstraints: $("ctxConstraints"), ctxNotes: $("ctxNotes"),
+    criteriaList: $("criteriaList"), taskType: $("taskType"), taskTitle: $("taskTitle"), taskBrief: $("taskBrief"), taskMax: $("taskMax"), fileName: $("fileName"),
+    draftInput: $("draftInput"), lineStatus: $("lineStatus"), charStatus: $("charStatus"), wordStatus: $("wordStatus"), taskTimer: $("taskTimer"),
+    diagnosticMessage: $("diagnosticMessage"), livePotential: $("livePotential"), feedback: $("feedback"), submitTask: $("submitTask"), endShift: $("endShift"),
+    sparkyFace: $("sparkyFace"), sparkyComment: $("sparkyComment"), readingWord: $("readingWord"), wordCount: $("wordCount"), issueChips: $("issueChips"),
+    scoreEl: $("score"), progressCount: $("progressCount"), lunchState: $("lunchState"), finalScore: $("finalScore"), endingText: $("endingText"), endingHint: $("endingHint"), restart: $("restart")
+  };
 
-/**
- * Perform real-time AI evaluation using Google Gemini API or Smart Fallback Parser
- */
+  if (els.intro) els.intro.addEventListener("click", () => advanceIntro(false));
+  if (els.draftInput) {
+    els.draftInput.addEventListener("input", updateLive);
+    els.draftInput.addEventListener("keyup", updateCaretStatus);
+    els.draftInput.addEventListener("click", updateCaretStatus);
+  }
+  if (els.submitTask) els.submitTask.addEventListener("click", submitCurrentTask);
+  if (els.endShift) els.endShift.addEventListener("click", showEnding);
+  if (els.ending) els.ending.addEventListener("click", e => { if (!els.restart?.classList.contains("hidden") || e.target === els.restart) return; advanceEnding(false); });
+  if (els.restart) els.restart.addEventListener("click", e => { e.stopPropagation(); window.location.reload(); });
+
+  showIntroLine();
+});
+
 async function performAIEvaluation(task, text) {
   const words = makeTextState(text).words;
 
@@ -180,7 +190,6 @@ async function performAIEvaluation(task, text) {
     };
   }
 
-  // Attempt API Call if GEMINI_API_KEY is configured
   if (GEMINI_API_KEY) {
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -212,29 +221,26 @@ ${task.criteria.map((c, i) => `${i + 1}. ${c.prompt}`).join("\n")}`
       });
 
       const data = await response.json();
-      const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
-      return {
-        issues: parsed.issues || [],
-        criteriaMet: parsed.criteriaMet || [],
-        sparkyReaction: { face: parsed.sparkyFace || "😐", comment: parsed.sparkyComment || "“Keep drafting.”" }
-      };
+      if (data.candidates && data.candidates[0]) {
+        const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
+        return {
+          issues: parsed.issues || [],
+          criteriaMet: parsed.criteriaMet || [],
+          sparkyReaction: { face: parsed.sparkyFace || "😐", comment: parsed.sparkyComment || "“Keep drafting.”" }
+        };
+      }
     } catch (err) {
-      console.warn("AI API request failed, switching to dynamic local NLP engine:", err);
+      console.warn("AI API request failed, falling back to local engine:", err);
     }
   }
 
-  // Dynamic Local NLP Engine (Fallback)
   return runLocalNLPEngine(task, text, words);
 }
 
-/**
- * Intelligent client-side NLP parser for spelling, tone, and criteria verification
- */
 function runLocalNLPEngine(task, text, words) {
   const lower = text.toLowerCase();
   const issues = [];
 
-  // Dynamic Informal / Tone Scanner
   const informalRegex = /\b(hi|hey|hello|so|like|lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously|fuck|shit|bitch|ass|damn|crap)\b|you keep|your fault|because of you|!!!/gi;
   let match;
   while ((match = informalRegex.exec(text)) !== null) {
@@ -247,27 +253,21 @@ function runLocalNLPEngine(task, text, words) {
     });
   }
 
-  // Dynamic Spell Checker Heuristic (Detects garbled tokens like fcuck, hyte, luv, fycj)
+  let searchOffset = 0;
   words.forEach(word => {
     const cleanWord = word.replace(/[^a-zA-Z]/g, "");
     if (!cleanWord) return;
 
-    // Capitalization of single letter 'i'
-    if (word === "i") {
-      const idx = text.indexOf(" i ");
-      if (idx !== -1) issues.push({ type: "spelling", start: idx + 1, end: idx + 2, label: "Capitalize 'I'" });
-    }
-
-    // Common typos dynamic check
     const knownTypos = { fcuck: "fuck", hyte: "hate", luv: "love", fycj: "fyck", recieve: "receive", definately: "definitely", seperate: "separate" };
     if (knownTypos[cleanWord.toLowerCase()]) {
-      const idx = lower.indexOf(cleanWord.toLowerCase());
-      issues.push({ type: "spelling", start: idx, end: idx + cleanWord.length, label: `${cleanWord} → ${knownTypos[cleanWord.toLowerCase()]}` });
+      const idx = lower.indexOf(cleanWord.toLowerCase(), searchOffset);
+      if (idx !== -1) {
+        issues.push({ type: "spelling", start: idx, end: idx + cleanWord.length, label: `${cleanWord} → ${knownTypos[cleanWord.toLowerCase()]}` });
+        searchOffset = idx + cleanWord.length;
+      }
     }
   });
 
-  // Evaluate Task Criteria
-  const state = { value: text, lower, words };
   const criteriaMet = task.criteria.map((c) => {
     if (c.id === "length") {
       const limits = c.label.match(/\d+/g);
@@ -276,12 +276,10 @@ function runLocalNLPEngine(task, text, words) {
     }
     if (c.id === "tone") return !issues.some(i => i.type === "informal") && words.length >= 7;
     
-    // Dynamic keyword/phrase check
     const keywords = c.prompt.toLowerCase().split(" ").filter(w => w.length > 4);
     return keywords.some(kw => lower.includes(kw));
   });
 
-  // Sparky Reaction Logic
   let sparkyFace = "🙂";
   let sparkyComment = "“I'm following. Keep writing.”";
 
@@ -298,11 +296,8 @@ function runLocalNLPEngine(task, text, words) {
   return { issues, criteriaMet, sparkyReaction: { face: sparkyFace, comment: sparkyComment } };
 }
 
-// ============================================================================
-// WORKSPACE & INTERFACE CONTROLLERS
-// ============================================================================
-
 function playLine(element, text, type = "hr") {
+  if (!element) return;
   element.classList.remove("playing", "skip-out", "player");
   void element.offsetWidth;
   element.textContent = text;
@@ -312,11 +307,13 @@ function playLine(element, text, type = "hr") {
 
 function showIntroLine() {
   const line = introLines[introIndex];
-  playLine(introText, line.text, line.type);
-  objectiveToast.classList.add("hidden");
-  if (line.toast) {
-    objectiveToast.classList.remove("hidden");
-    setTimeout(() => objectiveToast.classList.add("hidden"), 2700);
+  playLine(els.introText, line.text, line.type);
+  if (els.objectiveToast) {
+    els.objectiveToast.classList.add("hidden");
+    if (line.toast) {
+      els.objectiveToast.classList.remove("hidden");
+      setTimeout(() => els.objectiveToast.classList.add("hidden"), 2700);
+    }
   }
   clearTimeout(introTimer);
   introTimer = setTimeout(() => advanceIntro(true), 10000);
@@ -329,10 +326,10 @@ function advanceIntro(auto = false) {
   const finish = () => {
     introMoving = false;
     if (introIndex < introLines.length - 1) { introIndex++; showIntroLine(); }
-    else { intro.classList.add("hidden"); workspace.classList.remove("hidden"); renderTabs(); renderTask(0); }
+    else { els.intro?.classList.add("hidden"); els.workspace?.classList.remove("hidden"); renderTabs(); renderTask(0); }
   };
   if (auto) finish();
-  else { introText.classList.remove("playing"); introText.classList.add("skip-out"); setTimeout(finish, 280); }
+  else { els.introText?.classList.remove("playing"); els.introText?.classList.add("skip-out"); setTimeout(finish, 280); }
 }
 
 function makeTextState(value) {
@@ -342,12 +339,13 @@ function makeTextState(value) {
 }
 
 function renderTabs(newIndex = -1) {
-  taskTabs.innerHTML = tasks.map((task, i) => {
+  if (!els.taskTabs) return;
+  els.taskTabs.innerHTML = tasks.map((task, i) => {
     const classes = ["task-tab", i === taskIndex ? "active" : "", completed[i] ? "completed" : "", !unlocked[i] ? "locked" : "", i === newIndex ? "newly-unlocked" : ""].filter(Boolean).join(" ");
     const icon = completed[i] ? "✓" : unlocked[i] ? "▤" : "🔒";
     return `<button class="${classes}" data-tab="${i}" ${!unlocked[i] ? "disabled" : ""}><span class="tab-num">${String(i + 1).padStart(2,"0")}</span><span>${icon} ${task.tab}</span></button>`;
   }).join("");
-  taskTabs.querySelectorAll(".task-tab:not(.locked)").forEach(btn => btn.addEventListener("click", () => {
+  els.taskTabs.querySelectorAll(".task-tab:not(.locked)").forEach(btn => btn.addEventListener("click", () => {
     clearTimeout(autoAdvanceTimer);
     drafts[taskIndex] = getEditorText();
     renderTask(Number(btn.dataset.tab));
@@ -360,28 +358,29 @@ function renderTask(index) {
   const task = tasks[index];
   if (!taskStart[index]) taskStart[index] = Date.now();
   renderTabs();
-  taskType.textContent = task.type;
-  taskTitle.textContent = task.title;
-  taskBrief.textContent = task.brief;
-  taskMax.textContent = `${task.max} pts`;
-  fileName.textContent = task.file;
-  ctxPurpose.textContent = task.context.purpose;
-  ctxReader.textContent = task.context.reader;
-  ctxRole.textContent = task.context.role;
-  ctxConstraints.innerHTML = task.context.constraints.map(x => `<span>${x}</span>`).join("");
-  ctxNotes.innerHTML = task.context.notes.map(x => `<li>${x}</li>`).join("");
-  feedback.className = "feedback hidden";
-  feedback.textContent = "";
-  draftInput.textContent = drafts[index];
-  draftInput.setAttribute("contenteditable", completed[index] ? "false" : "plaintext-only");
-  submitTask.classList.toggle("hidden", completed[index]);
-  endShift.classList.toggle("hidden", !(index === tasks.length - 1 && completed[index]));
+  if (els.taskType) els.taskType.textContent = task.type;
+  if (els.taskTitle) els.taskTitle.textContent = task.title;
+  if (els.taskBrief) els.taskBrief.textContent = task.brief;
+  if (els.taskMax) els.taskMax.textContent = `${task.max} pts`;
+  if (els.fileName) els.fileName.textContent = task.file;
+  if (els.ctxPurpose) els.ctxPurpose.textContent = task.context.purpose;
+  if (els.ctxReader) els.ctxReader.textContent = task.context.reader;
+  if (els.ctxRole) els.ctxRole.textContent = task.context.role;
+  if (els.ctxConstraints) els.ctxConstraints.innerHTML = task.context.constraints.map(x => `<span>${x}</span>`).join("");
+  if (els.ctxNotes) els.ctxNotes.innerHTML = task.context.notes.map(x => `<li>${x}</li>`).join("");
+  if (els.feedback) { els.feedback.className = "feedback hidden"; els.feedback.textContent = ""; }
+  if (els.draftInput) {
+    els.draftInput.textContent = drafts[index];
+    els.draftInput.setAttribute("contenteditable", completed[index] ? "false" : "plaintext-only");
+  }
+  if (els.submitTask) els.submitTask.classList.toggle("hidden", completed[index]);
+  if (els.endShift) els.endShift.classList.toggle("hidden", !(index === tasks.length - 1 && completed[index]));
   updateLive();
   startTaskTimer();
-  if (!completed[index]) setTimeout(() => draftInput.focus(), 80);
+  if (!completed[index] && els.draftInput) setTimeout(() => els.draftInput.focus(), 80);
 }
 
-function getEditorText() { return draftInput.innerText.replace(/\n+$/g, ""); }
+function getEditorText() { return els.draftInput ? els.draftInput.innerText.replace(/\n+$/g, "") : ""; }
 
 function updateLive() {
   clearTimeout(debounceTimer);
@@ -392,20 +391,18 @@ function updateLive() {
     const words = makeTextState(value).words;
 
     const fullText = value.trim() || "—";
-    readingWord.textContent = fullText;
-    wordCount.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
-    charStatus.textContent = `${value.length} character${value.length === 1 ? "" : "s"}`;
-    wordStatus.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
+    if (els.readingWord) els.readingWord.textContent = fullText;
+    if (els.wordCount) els.wordCount.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
+    if (els.charStatus) els.charStatus.textContent = `${value.length} character${value.length === 1 ? "" : "s"}`;
+    if (els.wordStatus) els.wordStatus.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
 
     updateCaretStatus();
 
-    // Trigger AI Analysis
     const evaluation = await performAIEvaluation(task, value);
 
-    // Calculate Score
     let points = 0;
     task.criteria.forEach((c, idx) => { if (evaluation.criteriaMet[idx]) points += c.points; });
-    livePotential.textContent = `${points} / ${task.max}`;
+    if (els.livePotential) els.livePotential.textContent = `${points} / ${task.max}`;
 
     renderCriteria(task.criteria, evaluation.criteriaMet);
     renderDiagnostics(evaluation.issues);
@@ -421,7 +418,8 @@ function updateLive() {
 }
 
 function renderCriteria(criteria, metArray) {
-  criteriaList.innerHTML = criteria.map((c, i) => {
+  if (!els.criteriaList) return;
+  els.criteriaList.innerHTML = criteria.map((c, i) => {
     const met = !!metArray[i];
     return `<div class="criterion ${met ? "met" : ""}"><span class="criterion-dot"></span><span>${c.label}</span><strong>${met ? "+" : ""}${met ? c.points : 0}/${c.points}</strong></div>`;
   }).join("");
@@ -430,7 +428,7 @@ function renderCriteria(criteria, metArray) {
 function textNodeMap(root) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes = []; let offset = 0; let n;
-  while ((n = walker.nextNode())) { nodes.push({ node:n, start:offset, end:offset + n.nodeValue.length }); offset += n.nodeValue.length; }
+  while ((n = walker.nextNode())) { nodes.push({ node: n, start: offset, end: offset + n.nodeValue.length }); offset += n.nodeValue.length; }
   return nodes;
 }
 
@@ -439,66 +437,95 @@ function rangeForIssue(issue, map) {
   const e = map.find(x => issue.end >= x.start && issue.end <= x.end) || map[map.length - 1];
   if (!s || !e) return null;
   const range = new Range();
-  range.setStart(s.node, Math.max(0, issue.start - s.start));
-  range.setEnd(e.node, Math.min(e.node.nodeValue.length, issue.end - e.start));
+  range.setStart(s.node, Math.max(0, Math.min(s.node.nodeValue.length, issue.start - s.start)));
+  range.setEnd(e.node, Math.max(0, Math.min(e.node.nodeValue.length, issue.end - e.start)));
   return range;
 }
 
 function applyHighlights(issues) {
-  if (!(window.CSS && CSS.highlights && window.Highlight)) return;
-  CSS.highlights.delete("spelling-error"); CSS.highlights.delete("informal-warning"); CSS.highlights.delete("clarity-warning");
-  const map = textNodeMap(draftInput);
-  const groups = { spelling:[], informal:[], clarity:[] };
-  issues.forEach(issue => { const range = rangeForIssue(issue, map); if (range) groups[issue.type]?.push(range); });
-  if (groups.spelling.length) CSS.highlights.set("spelling-error", new Highlight(...groups.spelling));
-  if (groups.informal.length) CSS.highlights.set("informal-warning", new Highlight(...groups.informal));
-  if (groups.clarity.length) CSS.highlights.set("clarity-warning", new Highlight(...groups.clarity));
+  if (!(window.CSS && CSS.highlights && window.Highlight && els.draftInput)) return;
+  try {
+    CSS.highlights.delete("spelling-error"); CSS.highlights.delete("informal-warning"); CSS.highlights.delete("clarity-warning");
+    const map = textNodeMap(els.draftInput);
+    if (!map.length) return;
+    const groups = { spelling: [], informal: [], clarity: [] };
+    issues.forEach(issue => {
+      try {
+        const range = rangeForIssue(issue, map);
+        if (range) groups[issue.type]?.push(range);
+      } catch (rangeErr) {}
+    });
+    if (groups.spelling.length) CSS.highlights.set("spelling-error", new Highlight(...groups.spelling));
+    if (groups.informal.length) CSS.highlights.set("informal-warning", new Highlight(...groups.informal));
+    if (groups.clarity.length) CSS.highlights.set("clarity-warning", new Highlight(...groups.clarity));
+  } catch (err) {}
 }
 
 function renderDiagnostics(issues) {
-  issueChips.innerHTML = issues.slice(0,4).map(i => `<span class="issue-chip ${i.type === "spelling" ? "bad" : "warn"}">${i.label}</span>`).join("");
-  if (!issues.length) diagnosticMessage.textContent = "No obvious issues detected. Keep checking the criteria.";
-  else {
-    const s = issues.filter(i => i.type === "spelling").length, t = issues.filter(i => i.type === "informal").length, c = issues.filter(i => i.type === "clarity").length;
-    diagnosticMessage.textContent = [`${s ? s + " spelling/grammar" : ""}`, `${t ? t + " tone" : ""}`, `${c ? c + " clarity" : ""}`].filter(Boolean).join(" · ") + " flag(s)";
+  if (els.issueChips) els.issueChips.innerHTML = issues.slice(0, 4).map(i => `<span class="issue-chip ${i.type === "spelling" ? "bad" : "warn"}">${i.label}</span>`).join("");
+  if (els.diagnosticMessage) {
+    if (!issues.length) els.diagnosticMessage.textContent = "No obvious issues detected. Keep checking the criteria.";
+    else {
+      const s = issues.filter(i => i.type === "spelling").length, t = issues.filter(i => i.type === "informal").length, c = issues.filter(i => i.type === "clarity").length;
+      els.diagnosticMessage.textContent = [`${s ? s + " spelling/grammar" : ""}`, `${t ? t + " tone" : ""}`, `${c ? c + " clarity" : ""}`].filter(Boolean).join(" · ") + " flag(s)";
+    }
   }
 }
 
-function setSparky(face, comment) { sparkyFace.textContent = face; sparkyComment.textContent = comment; }
-function pulseSparky() { sparkyFace.classList.remove("word-read"); void sparkyFace.offsetWidth; sparkyFace.classList.add("word-read"); setTimeout(() => sparkyFace.classList.remove("word-read"), 120); }
+function setSparky(face, comment) {
+  if (els.sparkyFace) els.sparkyFace.textContent = face;
+  if (els.sparkyComment) els.sparkyComment.textContent = comment;
+}
+
+function pulseSparky() {
+  if (!els.sparkyFace) return;
+  els.sparkyFace.classList.remove("word-read");
+  void els.sparkyFace.offsetWidth;
+  els.sparkyFace.classList.add("word-read");
+  setTimeout(() => els.sparkyFace?.classList.remove("word-read"), 120);
+}
 
 function updateCaretStatus() {
+  if (!els.lineStatus || !els.draftInput) return;
   const sel = window.getSelection();
-  if (!sel || !sel.rangeCount || !draftInput.contains(sel.anchorNode)) { lineStatus.textContent = "Ln 1, Col 1"; return; }
+  if (!sel || !sel.rangeCount || !els.draftInput.contains(sel.anchorNode)) { els.lineStatus.textContent = "Ln 1, Col 1"; return; }
   const range = sel.getRangeAt(0).cloneRange();
-  range.selectNodeContents(draftInput); range.setEnd(sel.anchorNode, sel.anchorOffset);
+  range.selectNodeContents(els.draftInput); range.setEnd(sel.anchorNode, sel.anchorOffset);
   const before = range.toString(); const lines = before.split("\n");
-  lineStatus.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
+  els.lineStatus.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
 }
 
 function startTaskTimer() {
   clearInterval(timerInterval);
   const tick = () => {
+    if (!els.taskTimer) return;
     const elapsed = Math.floor((Date.now() - taskStart[taskIndex]) / 1000);
-    const min = String(Math.floor(elapsed/60)).padStart(2,"0"), sec = String(elapsed%60).padStart(2,"0");
-    taskTimer.textContent = `${min}:${sec}`;
+    const min = String(Math.floor(elapsed / 60)).padStart(2, "0"), sec = String(elapsed % 60).padStart(2, "0");
+    els.taskTimer.textContent = `${min}:${sec}`;
   };
   tick(); timerInterval = setInterval(tick, 1000);
 }
 
-function totalScore() { return taskScores.reduce((a,b) => a+b, 0); }
+function totalScore() { return taskScores.reduce((a, b) => a + b, 0); }
 
 function updateShiftScore() {
-  const score = totalScore(); scoreEl.textContent = score;
-  progressCount.textContent = `${completed.filter(Boolean).length}/5 filed`;
-  if (score > 75) { lunchState.textContent = "UNLOCKED"; lunchState.classList.add("unlocked"); }
-  else { lunchState.textContent = "LOCKED"; lunchState.classList.remove("unlocked"); }
+  const score = totalScore();
+  if (els.scoreEl) els.scoreEl.textContent = score;
+  if (els.progressCount) els.progressCount.textContent = `${completed.filter(Boolean).length}/5 filed`;
+  if (els.lunchState) {
+    if (score > 75) { els.lunchState.textContent = "UNLOCKED"; els.lunchState.classList.add("unlocked"); }
+    else { els.lunchState.textContent = "LOCKED"; els.lunchState.classList.remove("unlocked"); }
+  }
 }
 
 async function submitCurrentTask() {
   if (completed[taskIndex]) return;
   const value = getEditorText();
-  if (!value.trim()) { feedback.textContent = "You can't file an empty task."; feedback.className = "feedback bad"; setSparky("🤨", "“You have to write something first.”"); return; }
+  if (!value.trim()) {
+    if (els.feedback) { els.feedback.textContent = "You can't file an empty task."; els.feedback.className = "feedback bad"; }
+    setSparky("🤨", "“You have to write something first.”");
+    return;
+  }
   
   const task = tasks[taskIndex];
   const evaluation = await performAIEvaluation(task, value);
@@ -507,43 +534,46 @@ async function submitCurrentTask() {
   task.criteria.forEach((c, idx) => { if (evaluation.criteriaMet[idx]) points += c.points; });
 
   drafts[taskIndex] = value; taskScores[taskIndex] = points; completed[taskIndex] = true;
-  draftInput.setAttribute("contenteditable", "false"); submitTask.classList.add("hidden");
-  feedback.textContent = `Filed: ${points}/${task.max} points · ${evaluation.criteriaMet.filter(Boolean).length}/${task.criteria.length} criteria met.`;
-  feedback.className = `feedback ${points/task.max >= .6 ? "good" : "bad"}`;
+  if (els.draftInput) els.draftInput.setAttribute("contenteditable", "false");
+  if (els.submitTask) els.submitTask.classList.add("hidden");
+  if (els.feedback) {
+    els.feedback.textContent = `Filed: ${points}/${task.max} points · ${evaluation.criteriaMet.filter(Boolean).length}/${task.criteria.length} criteria met.`;
+    els.feedback.className = `feedback ${points / task.max >= .6 ? "good" : "bad"}`;
+  }
   
   updateShiftScore();
   
   if (taskIndex < tasks.length - 1) {
     unlocked[taskIndex + 1] = true; renderTabs(taskIndex + 1);
-    feedback.textContent += ` Next tab unlocked: ${tasks[taskIndex + 1].file}`;
+    if (els.feedback) els.feedback.textContent += ` Next tab unlocked: ${tasks[taskIndex + 1].file}`;
     clearTimeout(autoAdvanceTimer);
     autoAdvanceTimer = setTimeout(() => renderTask(taskIndex + 1), 1600);
   } else {
-    endShift.classList.remove("hidden");
+    if (els.endShift) els.endShift.classList.remove("hidden");
     renderTabs();
   }
 }
 
 function showEnding() {
   clearInterval(timerInterval); clearTimeout(autoAdvanceTimer);
-  workspace.classList.add("hidden"); ending.classList.remove("hidden"); restart.classList.add("hidden"); endingHint.classList.remove("hidden");
-  const score = totalScore(); finalScore.textContent = `${score} / 100`;
+  els.workspace?.classList.add("hidden"); els.ending?.classList.remove("hidden"); els.restart?.classList.add("hidden"); els.endingHint?.classList.remove("hidden");
+  const score = totalScore(); if (els.finalScore) els.finalScore.textContent = `${score} / 100`;
   endingSequence = score > 75 ? [
-    {text:"Huh, not bad intern. Not bad at all.",type:"hr"},
-    {text:"I guess you can go have your lunch now. Make that 15 minutes.",type:"hr"},
-    {text:"Only 15 minutes...?",type:"player"},
-    {text:"What was that?",type:"hr"},
-    {text:"Nothing!",type:"player"}
+    { text: "Huh, not bad intern. Not bad at all.", type: "hr" },
+    { text: "I guess you can go have your lunch now. Make that 15 minutes.", type: "hr" },
+    { text: "Only 15 minutes...?", type: "player" },
+    { text: "What was that?", type: "hr" },
+    { text: "Nothing!", type: "player" }
   ] : [
-    {text:"*Sighs*, I guess no lunch break for you.",type:"hr"},
-    {text:"Wait but please-",type:"player"},
-    {text:"Nada. Get back to work.",type:"hr"}
+    { text: "*Sighs*, I guess no lunch break for you.", type: "hr" },
+    { text: "Wait but please-", type: "player" },
+    { text: "Nada. Get back to work.", type: "hr" }
   ];
   endingIndex = 0; showEndingLine();
 }
 
 function showEndingLine() {
-  const line = endingSequence[endingIndex]; playLine(endingText, line.text, line.type);
+  const line = endingSequence[endingIndex]; playLine(els.endingText, line.text, line.type);
   clearTimeout(endingTimer); endingTimer = setTimeout(() => advanceEnding(true), 10000);
 }
 
@@ -552,20 +582,7 @@ function advanceEnding(auto = false) {
   const finish = () => {
     endingMoving = false;
     if (endingIndex < endingSequence.length - 1) { endingIndex++; showEndingLine(); }
-    else { endingText.classList.remove("playing"); endingText.style.opacity = 0; endingHint.classList.add("hidden"); restart.classList.remove("hidden"); }
+    else { els.endingText?.classList.remove("playing"); if (els.endingText) els.endingText.style.opacity = 0; els.endingHint?.classList.add("hidden"); els.restart?.classList.remove("hidden"); }
   };
-  if (auto) finish(); else { endingText.classList.remove("playing"); endingText.classList.add("skip-out"); setTimeout(finish, 280); }
+  if (auto) finish(); else { els.endingText?.classList.remove("playing"); els.endingText?.classList.add("skip-out"); setTimeout(finish, 280); }
 }
-
-// Event Listeners
-intro.addEventListener("click", () => advanceIntro(false));
-draftInput.addEventListener("input", updateLive);
-draftInput.addEventListener("keyup", updateCaretStatus);
-draftInput.addEventListener("click", updateCaretStatus);
-submitTask.addEventListener("click", submitCurrentTask);
-endShift.addEventListener("click", showEnding);
-ending.addEventListener("click", e => { if (!restart.classList.contains("hidden") || e.target === restart) return; advanceEnding(false); });
-restart.addEventListener("click", e => { e.stopPropagation(); window.location.reload(); });
-
-// Initialize Game
-showIntroLine();
