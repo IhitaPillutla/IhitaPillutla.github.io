@@ -192,7 +192,7 @@ async function performAIEvaluation(task, text) {
 
   if (GEMINI_API_KEY) {
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$){GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,7 +222,9 @@ ${task.criteria.map((c, i) => `${i + 1}. ${c.prompt}`).join("\n")}`
 
       const data = await response.json();
       if (data.candidates && data.candidates[0]) {
-        const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
+        let rawJson = data.candidates[0].content.parts[0].text;
+        rawJson = rawJson.replace(/```json/gi, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(rawJson);
         return {
           issues: parsed.issues || [],
           criteriaMet: parsed.criteriaMet || [],
@@ -241,33 +243,80 @@ function runLocalNLPEngine(task, text, words) {
   const lower = text.toLowerCase();
   const issues = [];
 
-  const informalRegex = /\b(hi|hey|hello|so|like|lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously|fuck|shit|bitch|ass|damn|crap)\b|you keep|your fault|because of you|!!!/gi;
-  let match;
-  while ((match = informalRegex.exec(text)) !== null) {
-    const isProfane = /fuck|shit|bitch|ass|damn|crap/.test(match[0].toLowerCase());
-    issues.push({
-      type: "informal",
-      start: match.index,
-      end: match.index + match[0].length,
-      label: isProfane ? `Profanity detected: "${match[0]}"` : `Too informal: "${match[0]}"`
-    });
-  }
+  // 1. EXPANDED INFORMAL / RUDE / TEXT-SPEAK SCANNER
+  const informalRules = [
+    { regex: /\b(u suck|you suck|suck|sucks|dumb|stupid|trash|garbage|wtf|stfu|bullshit|screw|freaking)\b/gi, label: "Offensive/Rude tone" },
+    { regex: /\b(fuck|shit|bitch|ass|damn|crap)\b/gi, label: "Profanity" },
+    { regex: /\b(lol|lmao|rofl|omg|idk|btw|brb|tbh|imo|fyi|anyways|gonna|wanna|gotta|pls|plz|thx|thanks|whatever|k|kk|bro|bruh|dude|guys|yall|ya|yea|yeah|nah)\b/gi, label: "Slang/Informal" },
+    { regex: /\b(u|r|ur|ure|y)\b/gi, label: "Text-speak abbreviation" },
+    { regex: /\b(hi|hey|hello|so|like|obviously)\b/gi, label: "Casual opener/filler" },
+    { regex: /!!!|\?\?\?/g, label: "Excessive punctuation" }
+  ];
+
+  informalRules.forEach(rule => {
+    let match;
+    while ((match = rule.regex.exec(text)) !== null) {
+      const start = match.index;
+      const end = match.index + match[0].length;
+      if (!issues.some(i => start < i.end && end > i.start)) {
+        issues.push({
+          type: "informal",
+          start,
+          end,
+          label: `${rule.label}: "${match[0]}"`
+        });
+      }
+    }
+  });
+
+  // 2. COMMON OFFICE & WORKPLACE TYPO DICTIONARY
+  const dictionary = {
+    "evenning": "evening",
+    "evenin": "evening",
+    "comming": "coming",
+    "tommorrow": "tomorrow",
+    "tomorow": "tomorrow",
+    "succesful": "successful",
+    "begining": "beginning",
+    "writting": "writing",
+    "recieve": "receive",
+    "recieved": "received",
+    "definately": "definitely",
+    "seperate": "separate",
+    "apporval": "approval",
+    "aproval": "approval",
+    "recomended": "recommended",
+    "sincorly": "sincerely",
+    "sinserely": "sincerely",
+    "fcuck": "fuck",
+    "hyte": "hate",
+    "luv": "love"
+  };
 
   let searchOffset = 0;
   words.forEach(word => {
-    const cleanWord = word.replace(/[^a-zA-Z]/g, "");
+    const cleanWord = word.replace(/[^a-zA-Z]/g, "").toLowerCase();
     if (!cleanWord) return;
 
-    const knownTypos = { fcuck: "fuck", hyte: "hate", luv: "love", fycj: "fyck", recieve: "receive", definately: "definitely", seperate: "separate" };
-    if (knownTypos[cleanWord.toLowerCase()]) {
-      const idx = lower.indexOf(cleanWord.toLowerCase(), searchOffset);
+    if (dictionary[cleanWord]) {
+      const idx = lower.indexOf(cleanWord, searchOffset);
       if (idx !== -1) {
-        issues.push({ type: "spelling", start: idx, end: idx + cleanWord.length, label: `${cleanWord} → ${knownTypos[cleanWord.toLowerCase()]}` });
+        if (!issues.some(i => idx < i.end && (idx + cleanWord.length) > i.start)) {
+          issues.push({
+            type: "spelling",
+            start: idx,
+            end: idx + cleanWord.length,
+            label: `Spelling: "${cleanWord}" → "${dictionary[cleanWord]}"`
+          });
+        }
         searchOffset = idx + cleanWord.length;
       }
     }
   });
 
+  issues.sort((a, b) => a.start - b.start);
+
+  // 3. EVALUATE TASK CRITERIA
   const criteriaMet = task.criteria.map((c) => {
     if (c.id === "length") {
       const limits = c.label.match(/\d+/g);
@@ -280,12 +329,17 @@ function runLocalNLPEngine(task, text, words) {
     return keywords.some(kw => lower.includes(kw));
   });
 
+  // 4. SPARKY HR REACTION LOGIC
   let sparkyFace = "🙂";
   let sparkyComment = "“I'm following. Keep writing.”";
 
-  if (issues.some(i => i.label.includes("Profanity") || i.label.includes("Too informal"))) {
+  const severeIssue = issues.find(i => i.label.includes("Offensive") || i.label.includes("Profanity"));
+  if (severeIssue) {
     sparkyFace = "😡";
-    sparkyComment = "“That wording is going to HR. Which is me.”";
+    sparkyComment = "“That wording is going straight to HR. Which is me.”";
+  } else if (issues.some(i => i.type === "informal")) {
+    sparkyFace = "🤨";
+    sparkyComment = "“Keep it professional. Slang won't cut it.”";
   } else if (words.length >= task.minReactionWords) {
     const metCount = criteriaMet.filter(Boolean).length;
     if (metCount >= task.criteria.length - 1) { sparkyFace = "🙂"; sparkyComment = "“Nice! Most of the brief is covered.”"; }
@@ -437,8 +491,10 @@ function rangeForIssue(issue, map) {
   const e = map.find(x => issue.end >= x.start && issue.end <= x.end) || map[map.length - 1];
   if (!s || !e) return null;
   const range = new Range();
-  range.setStart(s.node, Math.max(0, Math.min(s.node.nodeValue.length, issue.start - s.start)));
-  range.setEnd(e.node, Math.max(0, Math.min(e.node.nodeValue.length, issue.end - e.start)));
+  const startOffset = Math.max(0, Math.min(s.node.nodeValue.length, issue.start - s.start));
+  const endOffset = Math.max(0, Math.min(e.node.nodeValue.length, issue.end - e.start));
+  range.setStart(s.node, startOffset);
+  range.setEnd(e.node, endOffset);
   return range;
 }
 
