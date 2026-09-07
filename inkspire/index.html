@@ -3,103 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#17130f" />
+  <meta name="theme-color" content="#171717" />
   <title>InkSpire — First Day</title>
-  <meta name="description" content="InkSpire is a short gamified professional-writing experience set inside a suspiciously hostile office." />
+  <meta name="description" content="InkSpire is a gamified professional-writing experience set inside a suspiciously hostile office." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div id="app">
     <section id="intro" class="scene scene-black active cinematic" aria-live="polite">
       <div class="scanlines"></div>
-      <div class="cinematic-stage">
-        <p id="introText" class="cinematic-line"></p>
-      </div>
+      <div class="cinematic-stage"><p id="introText" class="cinematic-line"></p></div>
       <div id="objectiveToast" class="toast hidden">OBJECTIVES ADDED!</div>
       <p class="click-hint">click anywhere to continue ▸</p>
     </section>
 
     <section id="workspace" class="scene workspace hidden">
-      <header class="desk-header">
-        <div class="brand-block">
-          <span class="brand-stamp">INKSPIRE</span>
-          <div>
-            <strong>INTERN WORK PAD</strong>
-            <small>Employee 017 · first day</small>
-          </div>
-        </div>
-        <div class="shift-info"><span>09:03</span><span class="status-dot">● HR ONLINE</span></div>
-      </header>
+      <div class="app-window">
+        <header class="titlebar">
+          <div class="window-title"><span class="app-icon">▤</span><span>InkSpire WorkPad</span></div>
+          <div class="window-status"><span id="shiftClock">09:03</span><span class="hr-online">● HR ONLINE</span></div>
+        </header>
 
-      <main class="desk-layout">
-        <aside class="sticky objectives-panel">
-          <div class="sticky-pin"></div>
-          <div class="panel-heading"><span>TO-DO</span><span id="progressCount">0/5</span></div>
-          <ol id="objectivesList" class="objective-list"></ol>
-          <div class="score-box"><span>PERFORMANCE</span><strong id="score">0</strong><small>/100</small></div>
-        </aside>
+        <nav class="menu-bar" aria-label="Application menu"><span>File</span><span>Edit</span><span>View</span><span>Help</span></nav>
+        <div id="taskTabs" class="tab-bar" aria-label="Project tabs"></div>
 
-        <section class="pad-wrap">
-          <div class="spiral" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-          </div>
-          <article class="notepad">
-            <div class="paper-holes" aria-hidden="true"><i></i><i></i><i></i></div>
-            <div class="notepad-topline">
-              <span id="taskType">INCOMING TASK</span>
-              <span id="taskNumber">01 / 05</span>
+        <main class="work-area">
+          <aside class="context-sidebar">
+            <div class="sidebar-title">SETUP &amp; CONTEXT</div>
+            <section class="context-block"><small>PRIMARY PURPOSE</small><p id="ctxPurpose"></p></section>
+            <section class="context-block"><small>TARGET READER</small><p id="ctxReader"></p></section>
+            <section class="context-block"><small>YOUR ROLE</small><p id="ctxRole"></p></section>
+            <section class="context-block"><small>CONSTRAINTS</small><div id="ctxConstraints" class="constraint-chips"></div></section>
+            <section class="context-block"><small>REFERENCE NOTES</small><ul id="ctxNotes" class="context-notes"></ul></section>
+
+            <div class="sidebar-title rubric-title">LIVE CRITERIA</div>
+            <div id="criteriaList" class="criteria-list"></div>
+          </aside>
+
+          <section class="document-pane">
+            <div class="task-heading">
+              <div><span id="taskType" class="task-kicker"></span><h1 id="taskTitle"></h1></div>
+              <div class="task-value"><span>AVAILABLE</span><strong id="taskMax">0 pts</strong></div>
             </div>
-            <div class="date-line">DATE: ________ &nbsp;&nbsp;&nbsp; DESK: 017 &nbsp;&nbsp;&nbsp; STATUS: URGENT</div>
-            <h1 id="taskTitle"></h1>
             <p id="taskBrief" class="task-brief"></p>
-            <div id="taskContent" class="task-content"></div>
 
-            <div id="liveFeedback" class="live-feedback" aria-live="polite">
-              <div class="live-dot"></div>
-              <span id="liveLabel">SPARKY IS WATCHING</span>
-              <strong id="liveReadout">waiting...</strong>
-              <span id="livePotential"></span>
+            <div class="editor-shell">
+              <div class="editor-toolbar"><span id="fileName">untitled.txt</span><span id="taskTimer">00:00</span></div>
+              <div id="draftInput" class="text-editor" contenteditable="plaintext-only" role="textbox" aria-multiline="true" spellcheck="true" data-placeholder="Start typing..."></div>
+              <div class="editor-status">
+                <span id="lineStatus">Ln 1, Col 1</span>
+                <span id="charStatus">0 characters</span>
+                <span id="wordStatus">0 words</span>
+                <span>Plain text</span>
+                <span>UTF-8</span>
+              </div>
             </div>
 
-            <div id="feedback" class="feedback hidden"></div>
-            <div class="task-actions">
+            <div class="diagnostics-row">
+              <div class="diagnostic-key"><span class="key spelling"></span> spelling</div>
+              <div class="diagnostic-key"><span class="key informal"></span> informal / risky tone</div>
+              <div class="diagnostic-key"><span class="key clarity"></span> wordy / unclear</div>
+              <div id="diagnosticMessage" class="diagnostic-message">No issues yet.</div>
+            </div>
+
+            <div class="bottom-actions">
+              <div class="score-preview"><small>LIVE TASK SCORE</small><strong id="livePotential">0 / 0</strong></div>
+              <div id="feedback" class="feedback hidden"></div>
               <button id="submitTask" class="primary-btn">FILE TASK ✓</button>
-              <button id="nextTask" class="secondary-btn hidden">TURN PAGE ▸</button>
+              <button id="endShift" class="primary-btn hidden">END SHIFT ▸</button>
             </div>
-            <span class="page-number" id="pageNumber">— 01 —</span>
-          </article>
-        </section>
+          </section>
 
-        <aside class="sticky sparky-panel">
-          <div class="sticky-pin"></div>
-          <div class="sparky-header">HR // LIVE WORD READER</div>
-          <div class="sparky-screen">
-            <div id="sparkyFace" class="sparky-face">😐</div>
-            <div class="camera-noise"></div>
-          </div>
-          <p class="sparky-name">SPARKY <span>HR</span></p>
-          <p id="sparkyComment" class="sparky-comment">“I'm reading.”</p>
-          <div class="reading-card">
-            <small>READING NOW</small>
-            <strong id="readingWord">—</strong>
-            <span id="wordCount">0 words</span>
-          </div>
-          <div class="lunch-lock">🔒 LUNCH ACCESS <strong id="lunchState">LOCKED</strong></div>
-        </aside>
-      </main>
+          <aside class="sparky-sidebar">
+            <div class="sparky-title">SPARKY // LIVE REVIEW</div>
+            <div class="sparky-screen"><div id="sparkyFace" class="sparky-face">😐</div><div class="camera-noise"></div></div>
+            <p id="sparkyComment" class="sparky-comment">“I'm reading. Keep going.”</p>
+            <div class="reading-card"><small>JUST READ</small><strong id="readingWord">—</strong><span id="wordCount">0 words</span></div>
+            <div id="issueChips" class="issue-chips"></div>
+            <div class="performance-card"><small>SHIFT SCORE</small><strong><span id="score">0</span><em>/100</em></strong><span id="progressCount">0/5 filed</span></div>
+            <div class="lunch-lock">🔒 LUNCH ACCESS <strong id="lunchState">LOCKED</strong></div>
+          </aside>
+        </main>
+      </div>
     </section>
 
     <section id="ending" class="scene scene-black hidden cinematic" aria-live="polite">
       <div class="scanlines"></div>
       <div class="ending-score">END OF SHIFT · <span id="finalScore">0 / 100</span></div>
-      <div class="cinematic-stage">
-        <p id="endingText" class="cinematic-line"></p>
-      </div>
+      <div class="cinematic-stage"><p id="endingText" class="cinematic-line"></p></div>
       <p id="endingHint" class="click-hint">click anywhere to continue ▸</p>
       <button id="restart" class="restart-btn hidden">CLOCK IN AGAIN ↻</button>
     </section>
   </div>
-
   <script src="game.js"></script>
 </body>
 </html>
