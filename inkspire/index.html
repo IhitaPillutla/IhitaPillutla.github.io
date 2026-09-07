@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b0d0c" />
+  <title>InkSpire — First Day</title>
+  <meta name="description" content="InkSpire is a short gamified professional-writing experience set inside a suspiciously hostile office." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="intro" class="scene scene-black active" aria-live="polite">
+      <div class="scanlines"></div>
+      <div class="dialogue-stage">
+        <p id="introText" class="fade-line"></p>
+        <p id="playerLine" class="player-line hidden"></p>
+      </div>
+      <div id="objectiveToast" class="toast hidden">Objectives added!</div>
+      <button id="introNext" class="continue-btn">CONTINUE ▸</button>
+    </section>
+
+    <section id="workspace" class="scene workspace hidden">
+      <header class="topbar">
+        <div class="brand-block">
+          <span class="brand-mark">INK</span>
+          <div><strong>InkSpire</strong><small>Internal Writing Desk v1.0</small></div>
+        </div>
+        <div class="shift-info"><span>INTERN ID: 017</span><span>SHIFT: 09:03</span><span class="status-dot">● ONLINE</span></div>
+      </header>
+
+      <main class="desk-layout">
+        <aside class="objectives-panel">
+          <div class="panel-heading"><span>OBJECTIVES</span><span id="progressCount">0/5</span></div>
+          <ol id="objectivesList" class="objective-list"></ol>
+          <div class="score-box"><span>PERFORMANCE</span><strong id="score">0</strong><small>/ 100</small></div>
+        </aside>
+
+        <section class="notepad-wrap">
+          <div class="paperclip">⌇</div>
+          <article class="notepad">
+            <div class="notepad-topline">
+              <span id="taskType">INCOMING TASK</span>
+              <span id="taskNumber">01 / 05</span>
+            </div>
+            <h1 id="taskTitle"></h1>
+            <p id="taskBrief" class="task-brief"></p>
+            <div id="taskContent" class="task-content"></div>
+            <div id="feedback" class="feedback hidden"></div>
+            <div class="task-actions">
+              <button id="submitTask" class="primary-btn">SUBMIT TO SPARKY</button>
+              <button id="nextTask" class="secondary-btn hidden">NEXT TASK ▸</button>
+            </div>
+          </article>
+        </section>
+
+        <aside class="sparky-panel">
+          <div class="sparky-header">HR LIVE FEED</div>
+          <div class="sparky-screen">
+            <div id="sparkyFace" class="sparky-face">😐</div>
+            <div class="camera-noise"></div>
+          </div>
+          <p class="sparky-name">SPARKY <span>HR</span></p>
+          <p id="sparkyComment" class="sparky-comment">“Let's see what you can do.”</p>
+          <div class="lunch-lock">🔒 LUNCH ACCESS <strong id="lunchState">LOCKED</strong></div>
+        </aside>
+      </main>
+    </section>
+
+    <section id="ending" class="scene scene-black hidden" aria-live="polite">
+      <div class="scanlines"></div>
+      <div class="result-card">
+        <p class="result-kicker">END OF SHIFT REPORT</p>
+        <div id="finalFace" class="final-face">😐</div>
+        <h2 id="finalScore">0 / 100</h2>
+        <p id="endingLine" class="ending-line"></p>
+        <p id="endingPlayer" class="player-line"></p>
+        <p id="endingReply" class="ending-reply"></p>
+        <button id="restart" class="continue-btn">CLOCK IN AGAIN ↻</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
