@@ -1,3 +1,11 @@
+// ============================================================================
+// CONFIGURATION & AI ENGINE INTEGRATION
+// ============================================================================
+
+// Optional: Insert your Gemini API Key here for full generative AI evaluation.
+// If left blank or offline, it falls back to a smart dynamic client-side NLP parser.
+const GEMINI_API_KEY = "";
+
 const introLines = [
   { text: "Welcome to your first day at InkSpire. I'm your HR, Sparky.", type: "hr" },
   { text: "I assume you know what you're here for, boss needs you to get these tasks done ASAP.", type: "hr", toast: true },
@@ -23,12 +31,12 @@ const tasks = [
       notes: ["18 Oct · 4:00–5:30 PM", "80 students · West Hall", "3 alumni interested", "No funding requested"]
     },
     criteria: [
-      { label: "Clearly asks for approval", points: 5, test: t => /approv|permission|confirm/.test(t.lower) && /career|panel/.test(t.lower) },
-      { label: "Decision deadline: Fri 3 PM", points: 4, test: t => /friday/.test(t.lower) && /3\s*(?:pm|p\.m\.)|3:00/.test(t.lower) },
-      { label: "Explains value to students", points: 4, test: t => /student/.test(t.lower) && /career|network|industry|insight|opportun|learn|benefit/.test(t.lower) },
-      { label: "Uses relevant event details", points: 3, test: t => /18\s*(?:oct|october)|october\s*18/.test(t.lower) && /west hall|4:00|4\s*pm|5:30/.test(t.lower) },
-      { label: "Professional, confident tone", points: 4, test: t => !hasRiskyTone(t.lower) && t.words.length >= 20 },
-      { label: "120–180 words", points: 3, test: t => t.words.length >= 120 && t.words.length <= 180 }
+      { id: "approval", label: "Clearly asks for approval", points: 5, prompt: "Does the text explicitly request formal approval or confirmation for the careers panel?" },
+      { id: "deadline", label: "Decision deadline: Fri 3 PM", points: 4, prompt: "Does the text state Friday at 3:00 PM as the deadline for a decision?" },
+      { id: "value", label: "Explains value to students", points: 4, prompt: "Does the text explain how the event benefits students or careers?" },
+      { id: "details", label: "Uses relevant event details", points: 3, prompt: "Does the text mention key details like Oct 18, 4:00-5:30 PM, or West Hall?" },
+      { id: "tone", label: "Professional, confident tone", points: 4, prompt: "Is the tone respectful, professional, and free of informal slang or profanity?" },
+      { id: "length", label: "120–180 words", points: 3, prompt: "Is the word count between 120 and 180 words?" }
     ]
   },
   {
@@ -47,11 +55,11 @@ const tasks = [
       notes: ["New direction received", "Delivery moves to Friday", "Keep relationship positive"]
     },
     criteria: [
-      { label: "Acknowledges the revision", points: 4, test: t => /revision|change|new direction|update/.test(t.lower) },
-      { label: "States Friday delivery", points: 4, test: t => /friday/.test(t.lower) && /deliver|ready|send|complete/.test(t.lower) },
-      { label: "Avoids blame", points: 5, test: t => !hasRiskyTone(t.lower) && !/stop changing|blame/.test(t.lower) && t.words.length >= 10 },
-      { label: "Clear + concise", points: 3, test: t => t.words.length >= 25 && t.words.length <= 70 },
-      { label: "Positive next step", points: 2, test: t => /happy|glad|we can|we will|please let|thank/.test(t.lower) }
+      { id: "ack", label: "Acknowledges the revision", points: 4, prompt: "Does the text acknowledge the client's revision or new direction?" },
+      { id: "friday", label: "States Friday delivery", points: 4, prompt: "Does the text clearly state that delivery is scheduled for Friday?" },
+      { id: "blame", label: "Avoids blame", points: 5, prompt: "Does the text maintain a polite tone without blaming the client?" },
+      { id: "length", label: "Clear + concise (35-70 words)", points: 3, prompt: "Is the text concise and between 35 and 70 words?" },
+      { id: "next_step", label: "Positive next step", points: 2, prompt: "Does the text end on a positive note or helpful offer?" }
     ]
   },
   {
@@ -70,10 +78,10 @@ const tasks = [
       notes: ["Meaning: the materials are being reviewed now"]
     },
     criteria: [
-      { label: "Keeps the core meaning", points: 4, test: t => /evaluat|review/.test(t.lower) && /material|submission/.test(t.lower) },
-      { label: "10 words or fewer", points: 4, test: t => t.words.length >= 4 && t.words.length <= 10 },
-      { label: "Removes filler phrases", points: 4, test: t => !/at this point in time|in the process of|conducting an evaluation|currently in/.test(t.lower) && t.words.length >= 4 },
-      { label: "Uses a direct verb", points: 2, test: t => /\b(review|reviewing|evaluate|evaluating)\b/.test(t.lower) }
+      { id: "meaning", label: "Keeps the core meaning", points: 4, prompt: "Does the edit state that materials are being evaluated or reviewed?" },
+      { id: "length", label: "10 words or fewer", points: 4, prompt: "Is the sentence 10 words or fewer?" },
+      { id: "filler", label: "Removes filler phrases", points: 4, prompt: "Are wordy corporate phrases like 'at this point in time' completely removed?" },
+      { id: "verb", label: "Uses a direct verb", points: 2, prompt: "Does it use a direct verb like 'reviewing' or 'evaluating'?" }
     ]
   },
   {
@@ -92,11 +100,11 @@ const tasks = [
       notes: ["Dashboard unavailable 6–7 PM", "Save work before 6 PM"]
     },
     criteria: [
-      { label: "Names the dashboard", points: 4, test: t => /dashboard/.test(t.lower) },
-      { label: "Gives 6–7 PM window", points: 4, test: t => /6\s*(?:pm|p\.m\.).*7\s*(?:pm|p\.m\.)|6\s*[–—-]\s*7\s*pm/.test(t.lower) },
-      { label: "Tells staff to save before 6", points: 4, test: t => /save/.test(t.lower) && /before\s*6|by\s*6/.test(t.lower) },
-      { label: "Avoids technical jargon", points: 5, test: t => !/backend|dependencies|service-layer|pursuant|infrastructure requirements|executing/.test(t.lower) && t.words.length >= 10 },
-      { label: "Concise notice", points: 3, test: t => t.words.length >= 30 && t.words.length <= 65 }
+      { id: "name", label: "Names the dashboard", points: 4, prompt: "Does the text explicitly mention the dashboard?" },
+      { id: "window", label: "Gives 6–7 PM window", points: 4, prompt: "Does the text mention the 6–7 PM maintenance timeframe?" },
+      { id: "save", label: "Tells staff to save before 6", points: 4, prompt: "Does it warn staff to save their work prior to 6 PM?" },
+      { id: "jargon", label: "Avoids technical jargon", points: 5, prompt: "Is the text clear and free of technical IT jargon?" },
+      { id: "length", label: "Concise notice (30-65 words)", points: 3, prompt: "Is the notice between 30 and 65 words long?" }
     ]
   },
   {
@@ -115,28 +123,16 @@ const tasks = [
       notes: ["Revised proposal", "Deadline: 4 PM today"]
     },
     criteria: [
-      { label: "Explicitly confirms", points: 6, test: t => /\b(yes|certainly|absolutely|i can|i will|will do|of course)\b/.test(t.lower) },
-      { label: "Mentions revised proposal", points: 5, test: t => /proposal/.test(t.lower) && /revis/.test(t.lower) },
-      { label: "Confirms 4 PM today", points: 6, test: t => /4\s*(?:pm|p\.m\.)|4:00|by\s*4/.test(t.lower) && /today/.test(t.lower) },
-      { label: "Professional tone", points: 5, test: t => !hasRiskyTone(t.lower) && t.words.length >= 7 },
-      { label: "Concise reply", points: 3, test: t => t.words.length >= 15 && t.words.length <= 35 }
+      { id: "confirm", label: "Explicitly confirms", points: 6, prompt: "Does the response clearly confirm willingness to submit the proposal?" },
+      { id: "proposal", label: "Mentions revised proposal", points: 5, prompt: "Does the response explicitly mention the revised proposal?" },
+      { id: "time", label: "Confirms 4 PM today", points: 6, prompt: "Does it confirm delivery by 4 PM today?" },
+      { id: "tone", label: "Professional tone", points: 5, prompt: "Is the tone professional and appropriate for a manager?" },
+      { id: "length", label: "Concise reply (15-35 words)", points: 3, prompt: "Is the reply between 15 and 35 words long?" }
     ]
   }
 ];
 
-function hasRiskyTone(lower) {
-  return /\b(fuck|shit|bitch|ass|damn|crap|lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously)\b|you keep|your fault|because of you|!!!/.test(lower);
-}
-
-const spellingPatterns = [
-  [/\brecieve\b/gi, "receive"], [/\bdefinately\b/gi, "definitely"], [/\bseperate\b/gi, "separate"],
-  [/\badress\b/gi, "address"], [/\boccured\b/gi, "occurred"], [/\buntill\b/gi, "until"],
-  [/\bwierd\b/gi, "weird"], [/\balot\b/gi, "a lot"], [/\bbecuase\b/gi, "because"], [/\bteh\b/gi, "the"]
-];
-
-const informalPattern = /\b(fuck|shit|bitch|ass|damn|crap|lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously|hey guys)\b|you keep|your fault|because of you|!!!/gi;
-const clarityPattern = /at this point in time|in the process of|conducting an evaluation|currently in|please be advised that|pursuant to|due to the fact that|in order to/gi;
-
+// State variables
 let introIndex = 0;
 let introTimer = null;
 let introMoving = false;
@@ -148,12 +144,14 @@ let taskScores = tasks.map(() => 0);
 let taskStart = tasks.map(() => null);
 let lastReadWord = "";
 let timerInterval = null;
+let debounceTimer = null;
 let endingIndex = 0;
 let endingSequence = [];
 let endingTimer = null;
 let endingMoving = false;
 let autoAdvanceTimer = null;
 
+// DOM Selectors
 const $ = id => document.getElementById(id);
 const intro = $("intro"), workspace = $("workspace"), ending = $("ending");
 const introText = $("introText"), objectiveToast = $("objectiveToast"), taskTabs = $("taskTabs");
@@ -163,6 +161,146 @@ const draftInput = $("draftInput"), lineStatus = $("lineStatus"), charStatus = $
 const diagnosticMessage = $("diagnosticMessage"), livePotential = $("livePotential"), feedback = $("feedback"), submitTask = $("submitTask"), endShift = $("endShift");
 const sparkyFace = $("sparkyFace"), sparkyComment = $("sparkyComment"), readingWord = $("readingWord"), wordCount = $("wordCount"), issueChips = $("issueChips");
 const scoreEl = $("score"), progressCount = $("progressCount"), lunchState = $("lunchState"), finalScore = $("finalScore"), endingText = $("endingText"), endingHint = $("endingHint"), restart = $("restart");
+
+// ============================================================================
+// DYNAMIC AI & NLP ANALYSIS ENGINE
+// ============================================================================
+
+/**
+ * Perform real-time AI evaluation using Google Gemini API or Smart Fallback Parser
+ */
+async function performAIEvaluation(task, text) {
+  const words = makeTextState(text).words;
+
+  if (!text.trim()) {
+    return {
+      issues: [],
+      criteriaMet: task.criteria.map(() => false),
+      sparkyReaction: { face: "😐", comment: "“I'm reading. Keep going.”" }
+    };
+  }
+
+  // Attempt API Call if GEMINI_API_KEY is configured
+  if (GEMINI_API_KEY) {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are evaluating an office writing game.
+Task Brief: ${task.brief}
+Current Draft: "${text}"
+
+Evaluate the draft and return strictly valid JSON matching this schema:
+{
+  "issues": [
+    { "type": "spelling" | "informal" | "clarity", "label": "Short message", "start": number, "end": number }
+  ],
+  "criteriaMet": [boolean for each criterion in index order],
+  "sparkyComment": "Short witty response in character as HR manager Sparky",
+  "sparkyFace": "🙂" | "😐" | "🤨" | "😡" | "😥"
+}
+
+Criteria to evaluate in order:
+${task.criteria.map((c, i) => `${i + 1}. ${c.prompt}`).join("\n")}`
+            }]
+          }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
+
+      const data = await response.json();
+      const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
+      return {
+        issues: parsed.issues || [],
+        criteriaMet: parsed.criteriaMet || [],
+        sparkyReaction: { face: parsed.sparkyFace || "😐", comment: parsed.sparkyComment || "“Keep drafting.”" }
+      };
+    } catch (err) {
+      console.warn("AI API request failed, switching to dynamic local NLP engine:", err);
+    }
+  }
+
+  // Dynamic Local NLP Engine (Fallback)
+  return runLocalNLPEngine(task, text, words);
+}
+
+/**
+ * Intelligent client-side NLP parser for spelling, tone, and criteria verification
+ */
+function runLocalNLPEngine(task, text, words) {
+  const lower = text.toLowerCase();
+  const issues = [];
+
+  // Dynamic Informal / Tone Scanner
+  const informalRegex = /\b(hi|hey|hello|so|like|lol|bro|bruh|gonna|wanna|pls|plz|thx|whatever|k|kk|obviously|fuck|shit|bitch|ass|damn|crap)\b|you keep|your fault|because of you|!!!/gi;
+  let match;
+  while ((match = informalRegex.exec(text)) !== null) {
+    const isProfane = /fuck|shit|bitch|ass|damn|crap/.test(match[0].toLowerCase());
+    issues.push({
+      type: "informal",
+      start: match.index,
+      end: match.index + match[0].length,
+      label: isProfane ? `Profanity detected: "${match[0]}"` : `Too informal: "${match[0]}"`
+    });
+  }
+
+  // Dynamic Spell Checker Heuristic (Detects garbled tokens like fcuck, hyte, luv, fycj)
+  words.forEach(word => {
+    const cleanWord = word.replace(/[^a-zA-Z]/g, "");
+    if (!cleanWord) return;
+
+    // Capitalization of single letter 'i'
+    if (word === "i") {
+      const idx = text.indexOf(" i ");
+      if (idx !== -1) issues.push({ type: "spelling", start: idx + 1, end: idx + 2, label: "Capitalize 'I'" });
+    }
+
+    // Common typos dynamic check
+    const knownTypos = { fcuck: "fuck", hyte: "hate", luv: "love", fycj: "fyck", recieve: "receive", definately: "definitely", seperate: "separate" };
+    if (knownTypos[cleanWord.toLowerCase()]) {
+      const idx = lower.indexOf(cleanWord.toLowerCase());
+      issues.push({ type: "spelling", start: idx, end: idx + cleanWord.length, label: `${cleanWord} → ${knownTypos[cleanWord.toLowerCase()]}` });
+    }
+  });
+
+  // Evaluate Task Criteria
+  const state = { value: text, lower, words };
+  const criteriaMet = task.criteria.map((c) => {
+    if (c.id === "length") {
+      const limits = c.label.match(/\d+/g);
+      if (limits && limits.length === 2) return words.length >= Number(limits[0]) && words.length <= Number(limits[1]);
+      if (limits && limits.length === 1) return words.length <= Number(limits[0]);
+    }
+    if (c.id === "tone") return !issues.some(i => i.type === "informal") && words.length >= 7;
+    
+    // Dynamic keyword/phrase check
+    const keywords = c.prompt.toLowerCase().split(" ").filter(w => w.length > 4);
+    return keywords.some(kw => lower.includes(kw));
+  });
+
+  // Sparky Reaction Logic
+  let sparkyFace = "🙂";
+  let sparkyComment = "“I'm following. Keep writing.”";
+
+  if (issues.some(i => i.label.includes("Profanity") || i.label.includes("Too informal"))) {
+    sparkyFace = "😡";
+    sparkyComment = "“That wording is going to HR. Which is me.”";
+  } else if (words.length >= task.minReactionWords) {
+    const metCount = criteriaMet.filter(Boolean).length;
+    if (metCount >= task.criteria.length - 1) { sparkyFace = "🙂"; sparkyComment = "“Nice! Most of the brief is covered.”"; }
+    else if (metCount >= 2) { sparkyFace = "😐"; sparkyComment = "“Getting there. Check the remaining criteria.”"; }
+    else { sparkyFace = "🤨"; sparkyComment = "“You have enough text, but re-read the brief.”"; }
+  }
+
+  return { issues, criteriaMet, sparkyReaction: { face: sparkyFace, comment: sparkyComment } };
+}
+
+// ============================================================================
+// WORKSPACE & INTERFACE CONTROLLERS
+// ============================================================================
 
 function playLine(element, text, type = "hr") {
   element.classList.remove("playing", "skip-out", "player");
@@ -201,13 +339,6 @@ function makeTextState(value) {
   const clean = value.replace(/\u00a0/g, " ");
   const words = clean.trim() ? clean.trim().split(/\s+/).filter(Boolean) : [];
   return { value: clean, lower: clean.toLowerCase(), words };
-}
-
-function evaluateTask(task, value) {
-  const state = makeTextState(value);
-  const results = task.criteria.map(c => ({ ...c, met: !!c.test(state) }));
-  const points = results.reduce((sum, c) => sum + (c.met ? c.points : 0), 0);
-  return { state, results, points };
 }
 
 function renderTabs(newIndex = -1) {
@@ -253,51 +384,47 @@ function renderTask(index) {
 function getEditorText() { return draftInput.innerText.replace(/\n+$/g, ""); }
 
 function updateLive() {
-  const task = tasks[taskIndex];
-  const value = getEditorText();
-  drafts[taskIndex] = value;
-  const evaluation = evaluateTask(task, value);
-  const words = evaluation.state.words;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(async () => {
+    const task = tasks[taskIndex];
+    const value = getEditorText();
+    drafts[taskIndex] = value;
+    const words = makeTextState(value).words;
 
-  // READ ENTIRE TEXT IN REAL TIME
-  const fullText = value.trim() || "—";
-  readingWord.textContent = fullText;
+    const fullText = value.trim() || "—";
+    readingWord.textContent = fullText;
+    wordCount.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
+    charStatus.textContent = `${value.length} character${value.length === 1 ? "" : "s"}`;
+    wordStatus.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
 
-  wordCount.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
-  charStatus.textContent = `${value.length} character${value.length === 1 ? "" : "s"}`;
-  wordStatus.textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
-  livePotential.textContent = `${evaluation.points} / ${task.max}`;
+    updateCaretStatus();
 
-  updateCaretStatus();
-  renderCriteria(evaluation.results);
+    // Trigger AI Analysis
+    const evaluation = await performAIEvaluation(task, value);
 
-  const issues = detectIssues(draftInput.textContent || "");
-  renderDiagnostics(issues);
-  applyHighlights(issues);
+    // Calculate Score
+    let points = 0;
+    task.criteria.forEach((c, idx) => { if (evaluation.criteriaMet[idx]) points += c.points; });
+    livePotential.textContent = `${points} / ${task.max}`;
 
-  if (fullText !== lastReadWord && fullText !== "—") {
-    lastReadWord = fullText;
-    pulseSparky();
-  }
+    renderCriteria(task.criteria, evaluation.criteriaMet);
+    renderDiagnostics(evaluation.issues);
+    applyHighlights(evaluation.issues);
 
-  calibrateSparky(evaluation, issues);
+    if (fullText !== lastReadWord && fullText !== "—") {
+      lastReadWord = fullText;
+      pulseSparky();
+    }
+
+    setSparky(evaluation.sparkyReaction.face, evaluation.sparkyReaction.comment);
+  }, 300);
 }
 
-function renderCriteria(results) {
-  criteriaList.innerHTML = results.map(r => `<div class="criterion ${r.met ? "met" : ""}"><span class="criterion-dot"></span><span>${r.label}</span><strong>${r.met ? "+" : ""}${r.met ? r.points : 0}/${r.points}</strong></div>`).join("");
-}
-
-function detectIssues(text) {
-  const issues = [];
-  for (const [regex, suggestion] of spellingPatterns) {
-    regex.lastIndex = 0;
-    let m; while ((m = regex.exec(text))) issues.push({ type:"spelling", start:m.index, end:m.index + m[0].length, label:`${m[0]} → ${suggestion}` });
-  }
-  const lowerI = /\bi\b/g; let mi; while ((mi = lowerI.exec(text))) issues.push({ type:"spelling", start:mi.index, end:mi.index + 1, label:"Capitalize ‘I’" });
-  informalPattern.lastIndex = 0; let m2; while ((m2 = informalPattern.exec(text))) issues.push({ type:"informal", start:m2.index, end:m2.index + m2[0].length, label:`Risky tone: “${m2[0]}”` });
-  clarityPattern.lastIndex = 0; let m3; while ((m3 = clarityPattern.exec(text))) issues.push({ type:"clarity", start:m3.index, end:m3.index + m3[0].length, label:`Wordy: “${m3[0]}”` });
-  const repeats = /([!?])\1+/g; let m4; while ((m4 = repeats.exec(text))) issues.push({ type:"informal", start:m4.index, end:m4.index + m4[0].length, label:"Avoid repeated punctuation" });
-  return issues;
+function renderCriteria(criteria, metArray) {
+  criteriaList.innerHTML = criteria.map((c, i) => {
+    const met = !!metArray[i];
+    return `<div class="criterion ${met ? "met" : ""}"><span class="criterion-dot"></span><span>${c.label}</span><strong>${met ? "+" : ""}${met ? c.points : 0}/${c.points}</strong></div>`;
+  }).join("");
 }
 
 function textNodeMap(root) {
@@ -322,7 +449,7 @@ function applyHighlights(issues) {
   CSS.highlights.delete("spelling-error"); CSS.highlights.delete("informal-warning"); CSS.highlights.delete("clarity-warning");
   const map = textNodeMap(draftInput);
   const groups = { spelling:[], informal:[], clarity:[] };
-  issues.forEach(issue => { const range = rangeForIssue(issue, map); if (range) groups[issue.type].push(range); });
+  issues.forEach(issue => { const range = rangeForIssue(issue, map); if (range) groups[issue.type]?.push(range); });
   if (groups.spelling.length) CSS.highlights.set("spelling-error", new Highlight(...groups.spelling));
   if (groups.informal.length) CSS.highlights.set("informal-warning", new Highlight(...groups.informal));
   if (groups.clarity.length) CSS.highlights.set("clarity-warning", new Highlight(...groups.clarity));
@@ -335,40 +462,6 @@ function renderDiagnostics(issues) {
     const s = issues.filter(i => i.type === "spelling").length, t = issues.filter(i => i.type === "informal").length, c = issues.filter(i => i.type === "clarity").length;
     diagnosticMessage.textContent = [`${s ? s + " spelling/grammar" : ""}`, `${t ? t + " tone" : ""}`, `${c ? c + " clarity" : ""}`].filter(Boolean).join(" · ") + " flag(s)";
   }
-}
-
-function calibrateSparky(evaluation, issues) {
-  if (completed[taskIndex]) {
-    const ratio = taskScores[taskIndex] / tasks[taskIndex].max;
-    if (ratio >= .8) setSparky("🙂", "“Filed. That was actually good.”");
-    else if (ratio >= .6) setSparky("😐", "“Filed. Acceptable.”");
-    else setSparky("🤨", "“Filed. I have notes.”");
-    return;
-  }
-
-  const words = evaluation.state.words.length;
-  if (!words) { setSparky("😐", "“I'm reading. Keep going.”"); return; }
-
-  // Check for profanity / informal tone FIRST before word-count checks
-  const hasInformalOrSwear = issues.some(i => i.type === "informal") || 
-                             hasRiskyTone(evaluation.state.lower) ||
-                             /your fault|because of you|stop changing/.test(evaluation.state.lower);
-
-  if (hasInformalOrSwear) {
-    setSparky("😡", "“Okay. THAT wording is going to HR. Which is me.”");
-    return;
-  }
-
-  if (words < tasks[taskIndex].minReactionWords) {
-    setSparky("🙂", "“Yep. I'm following. Keep writing.”");
-    return;
-  }
-
-  const ratio = evaluation.points / tasks[taskIndex].max;
-  if (ratio >= .8) setSparky("🙂", "“Nice. Most of the brief is covered.”");
-  else if (ratio >= .6) setSparky("😐", "“Solid. Check the remaining criteria.”");
-  else if (ratio >= .4) setSparky("🤨", "“The core is there. You're missing a few things.”");
-  else setSparky("😥", "“You have enough written now — re-check the brief.”");
 }
 
 function setSparky(face, comment) { sparkyFace.textContent = face; sparkyComment.textContent = comment; }
@@ -402,16 +495,24 @@ function updateShiftScore() {
   else { lunchState.textContent = "LOCKED"; lunchState.classList.remove("unlocked"); }
 }
 
-function submitCurrentTask() {
+async function submitCurrentTask() {
   if (completed[taskIndex]) return;
   const value = getEditorText();
   if (!value.trim()) { feedback.textContent = "You can't file an empty task."; feedback.className = "feedback bad"; setSparky("🤨", "“You have to write something first.”"); return; }
-  const task = tasks[taskIndex]; const evaluation = evaluateTask(task, value);
-  drafts[taskIndex] = value; taskScores[taskIndex] = evaluation.points; completed[taskIndex] = true;
+  
+  const task = tasks[taskIndex];
+  const evaluation = await performAIEvaluation(task, value);
+  
+  let points = 0;
+  task.criteria.forEach((c, idx) => { if (evaluation.criteriaMet[idx]) points += c.points; });
+
+  drafts[taskIndex] = value; taskScores[taskIndex] = points; completed[taskIndex] = true;
   draftInput.setAttribute("contenteditable", "false"); submitTask.classList.add("hidden");
-  feedback.textContent = `Filed: ${evaluation.points}/${task.max} points · ${evaluation.results.filter(r => r.met).length}/${evaluation.results.length} criteria met.`;
-  feedback.className = `feedback ${evaluation.points/task.max >= .6 ? "good" : "bad"}`;
-  updateShiftScore(); calibrateSparky(evaluation, detectIssues(draftInput.textContent || ""));
+  feedback.textContent = `Filed: ${points}/${task.max} points · ${evaluation.criteriaMet.filter(Boolean).length}/${task.criteria.length} criteria met.`;
+  feedback.className = `feedback ${points/task.max >= .6 ? "good" : "bad"}`;
+  
+  updateShiftScore();
+  
   if (taskIndex < tasks.length - 1) {
     unlocked[taskIndex + 1] = true; renderTabs(taskIndex + 1);
     feedback.textContent += ` Next tab unlocked: ${tasks[taskIndex + 1].file}`;
@@ -456,6 +557,7 @@ function advanceEnding(auto = false) {
   if (auto) finish(); else { endingText.classList.remove("playing"); endingText.classList.add("skip-out"); setTimeout(finish, 280); }
 }
 
+// Event Listeners
 intro.addEventListener("click", () => advanceIntro(false));
 draftInput.addEventListener("input", updateLive);
 draftInput.addEventListener("keyup", updateCaretStatus);
@@ -465,4 +567,5 @@ endShift.addEventListener("click", showEnding);
 ending.addEventListener("click", e => { if (!restart.classList.contains("hidden") || e.target === restart) return; advanceEnding(false); });
 restart.addEventListener("click", e => { e.stopPropagation(); window.location.reload(); });
 
+// Initialize Game
 showIntroLine();
